@@ -50,6 +50,8 @@ const supabaseClient = window.supabase
   : null;
 
   let realUsers = [];
+  let realMatches = [];
+  let activeMatch = null;
 
   function ensureCurrentUserId() {
     let savedId = localStorage.getItem("hubbeUserId");
@@ -607,9 +609,46 @@ async function toggleChoppLike(toUserId) {
   renderUsers();
   renderChats();
 }
+
 // ================= CHAT =================
 
-function renderChats() {
+async function loadRealMatches() {
+  if (!supabaseClient || !currentUser.id) return [];
+
+  const { data: matchesData, error } = await supabaseClient
+    .from("matches")
+    .select("*")
+    .or(`user1.eq.${currentUser.id},user2.eq.${currentUser.id}`);
+
+  if (error) {
+    console.error("Erro ao carregar matches:", error);
+    return [];
+  }
+
+  const enrichedMatches = [];
+
+  for (const match of matchesData || []) {
+    const otherUserId = match.user1 === currentUser.id ? match.user2 : match.user1;
+
+    const { data: userData, error: userError } = await supabaseClient
+      .from("users")
+      .select("*")
+      .eq("id", otherUserId)
+      .single();
+
+    if (!userError && userData) {
+      enrichedMatches.push({
+        ...match,
+        otherUser: userData
+      });
+    }
+  }
+
+  realMatches = enrichedMatches;
+  return enrichedMatches;
+}
+
+async function renderChats() {
   const listScreen = document.getElementById("chat-list-screen");
   const roomScreen = document.getElementById("chat-room-screen");
   const listEl = document.getElementById("chat-list");
@@ -619,50 +658,43 @@ function renderChats() {
   if (currentUser.activeChatId) {
     listScreen.classList.add("hidden");
     roomScreen.classList.remove("hidden");
-    renderActiveChat();
+    await renderActiveChat();
     return;
   }
 
   listScreen.classList.remove("hidden");
   roomScreen.classList.add("hidden");
 
-  if (!currentUser.matches || currentUser.matches.length === 0) {
+  const matches = await loadRealMatches();
+
+  if (!matches || matches.length === 0) {
     listEl.innerHTML = `
       <div class="chat-empty">
         Nenhum chat liberado ainda. O chat só aparece quando o chopp é recíproco 🍻
       </div>
     `;
 
-    if (typeof lucide !== "undefined") {
-      lucide.createIcons();
-    }
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 
-  listEl.innerHTML = currentUser.matches.map(user => {
-    const userMessages = chats[user.id] || [];
-    const lastMessage = userMessages.length
-      ? userMessages[userMessages.length - 1].text
-      : user.bio || "Novo match";
-
-    const avatarSrc = user.photo && user.photo.startsWith("data:")
-      ? user.photo
-      : (user.photoUrl || "");
+  listEl.innerHTML = matches.map(match => {
+    const user = match.otherUser;
 
     return `
-      <div class="chat-card" onclick="openChat(${user.id})">
+      <div class="chat-card" onclick="openChat('${match.id}')">
         <div class="chat-card-avatar-wrap">
           ${
-            avatarSrc
-              ? `<img class="chat-card-avatar" src="${avatarSrc}" alt="${user.name}">`
-              : `<div class="chat-card-avatar people-img">${user.photo}</div>`
+            user.photo
+              ? `<img class="chat-card-avatar" src="${user.photo}" alt="${user.name}">`
+              : `<div class="chat-card-avatar people-img">👤</div>`
           }
           <div class="chat-card-status ${user.mode === "active" ? "active" : "view"}"></div>
         </div>
 
         <div class="chat-card-main">
           <div class="chat-card-name">${user.name}</div>
-          <div class="chat-card-preview">"${lastMessage}"</div>
+          <div class="chat-card-preview">"Novo match"</div>
         </div>
 
         <div class="chat-card-icon">
@@ -672,33 +704,49 @@ function renderChats() {
     `;
   }).join("");
 
-  if (typeof lucide !== "undefined") {
-    lucide.createIcons();
-  }
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
-function openChat(userId) {
-  currentUser.activeChatId = userId;
+function openChat(matchId) {
+  currentUser.activeChatId = matchId;
   saveData();
   renderChats();
 }
 
 function backToChatList() {
   currentUser.activeChatId = null;
+  activeMatch = null;
   saveData();
   renderChats();
 }
 
-function getActiveChatUser() {
-  return currentUser.matches.find(user => user.id === currentUser.activeChatId);
+async function getActiveMatch() {
+  if (!currentUser.activeChatId) return null;
+
+  if (!realMatches || realMatches.length === 0) {
+    await loadRealMatches();
+  }
+
+  activeMatch = realMatches.find(match => match.id === currentUser.activeChatId);
+  return activeMatch;
 }
 
-function getRemainingChatMessages(userId) {
-  const used = currentUser.chatSentCount?.[userId] || 0;
-  return chatMessageLimit - used;
+async function getRemainingChatMessages(matchId) {
+  const { data, error } = await supabaseClient
+    .from("messages")
+    .select("id")
+    .eq("match_id", matchId)
+    .eq("sender_id", currentUser.id);
+
+  if (error) {
+    console.error("Erro ao contar mensagens:", error);
+    return 0;
+  }
+
+  return chatMessageLimit - (data?.length || 0);
 }
 
-function updateChatRemainingText(userId) {
+async function updateChatRemainingText(matchId) {
   const remainingText = document.getElementById("chat-remaining-text");
   const input = document.getElementById("chat-input");
   const sendBtn = document.getElementById("chat-send-btn");
@@ -706,7 +754,7 @@ function updateChatRemainingText(userId) {
 
   if (!remainingText || !input || !sendBtn || !quickContainer) return;
 
-  const remaining = getRemainingChatMessages(userId);
+  const remaining = await getRemainingChatMessages(matchId);
   const blocked = remaining <= 0;
 
   input.disabled = blocked;
@@ -725,119 +773,111 @@ function updateChatRemainingText(userId) {
   });
 }
 
-function renderQuickChatMessages(userId) {
+function renderQuickChatMessages(matchId) {
   const container = document.getElementById("chat-quick-messages");
   if (!container) return;
 
   container.innerHTML = quickChatMessages.map(msg => `
-    <button class="chat-quick-btn" onclick="sendQuickChatMessage(${userId}, ${JSON.stringify(msg)})">
+    <button class="chat-quick-btn" onclick="sendQuickChatMessage('${matchId}', ${JSON.stringify(msg)})">
       ${msg}
     </button>
   `).join("");
 }
 
-function renderActiveChat() {
-  const user = getActiveChatUser();
-  if (!user) {
+async function renderActiveChat() {
+  const match = await getActiveMatch();
+
+  if (!match) {
     backToChatList();
     return;
   }
+
+  const user = match.otherUser;
 
   const avatar = document.getElementById("chat-room-avatar");
   const name = document.getElementById("chat-room-name");
   const messagesEl = document.getElementById("chat-messages");
   const input = document.getElementById("chat-input");
 
-  const avatarSrc = user.photo && user.photo.startsWith("data:")
-    ? user.photo
-    : (user.photoUrl || "");
-
-  if (avatar) {
-    if (avatarSrc) {
-      avatar.src = avatarSrc;
-    } else {
-      avatar.src = "";
-    }
-  }
-
+  if (avatar) avatar.src = user.photo || "";
   if (name) name.textContent = user.name;
 
-  if (!chats[user.id]) chats[user.id] = [];
-  if (!currentUser.chatSentCount[user.id]) currentUser.chatSentCount[user.id] = 0;
+  const { data: messagesData, error } = await supabaseClient
+    .from("messages")
+    .select("*")
+    .eq("match_id", match.id)
+    .order("created_at", { ascending: true });
 
-  messagesEl.innerHTML = chats[user.id].length
-    ? chats[user.id].map(msg => `
-        <div class="chat-bubble-row ${msg.mine ? "mine" : "theirs"}">
-          <div class="chat-bubble ${msg.mine ? "mine" : "theirs"}">${msg.text}</div>
-        </div>
-      `).join("")
+  if (error) {
+    console.error("Erro ao carregar mensagens:", error);
+    messagesEl.innerHTML = `<div class="chat-empty">Erro ao carregar mensagens.</div>`;
+    return;
+  }
+
+  messagesEl.innerHTML = messagesData && messagesData.length
+    ? messagesData.map(msg => {
+        const mine = msg.sender_id === currentUser.id;
+
+        return `
+          <div class="chat-bubble-row ${mine ? "mine" : "theirs"}">
+            <div class="chat-bubble ${mine ? "mine" : "theirs"}">${msg.text}</div>
+          </div>
+        `;
+      }).join("")
     : `
       <div class="chat-bubble-row theirs">
-        <div class="chat-bubble theirs">Oi, tudo bem? 😊</div>
+        <div class="chat-bubble theirs">Vocês deram match de chopp 🍻</div>
       </div>
     `;
 
-  renderQuickChatMessages(user.id);
-  updateChatRemainingText(user.id);
+  renderQuickChatMessages(match.id);
+  await updateChatRemainingText(match.id);
 
   if (input) {
     input.value = "";
     input.onkeypress = e => {
-      if (e.key === "Enter") {
-        sendTypedChatMessage();
-      }
+      if (e.key === "Enter") sendTypedChatMessage();
     };
   }
 
-  if (typeof lucide !== "undefined") {
-    lucide.createIcons();
-  }
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
-function sendQuickChatMessage(userId, text) {
-  const remaining = getRemainingChatMessages(userId);
+async function sendQuickChatMessage(matchId, text) {
+  const remaining = await getRemainingChatMessages(matchId);
   if (remaining <= 0) return;
 
-  if (!chats[userId]) chats[userId] = [];
-
-  chats[userId].push({
-    from: currentUser.name,
-    text,
-    mine: true
+  await supabaseClient.from("messages").insert({
+    match_id: matchId,
+    sender_id: currentUser.id,
+    text
   });
 
-  currentUser.chatSentCount[userId] = (currentUser.chatSentCount[userId] || 0) + 1;
-
-  saveData();
-  renderActiveChat();
+  await renderActiveChat();
 }
 
-function sendTypedChatMessage() {
-  const user = getActiveChatUser();
-  if (!user) return;
+async function sendTypedChatMessage() {
+  const match = await getActiveMatch();
+  if (!match) return;
 
   const input = document.getElementById("chat-input");
   if (!input) return;
 
   const text = input.value.trim();
-  const remaining = getRemainingChatMessages(user.id);
+  const remaining = await getRemainingChatMessages(match.id);
 
   if (!text || remaining <= 0) return;
 
-  if (!chats[user.id]) chats[user.id] = [];
-
-  chats[user.id].push({
-    from: currentUser.name,
-    text,
-    mine: true
+  await supabaseClient.from("messages").insert({
+    match_id: match.id,
+    sender_id: currentUser.id,
+    text
   });
 
-  currentUser.chatSentCount[user.id] = (currentUser.chatSentCount[user.id] || 0) + 1;
-
   input.value = "";
-  saveData();
-  renderActiveChat();
+  await renderActiveChat();
 }
+
 // ================= PROFILE =================
 
 function updateProfile() {
@@ -921,13 +961,24 @@ function toggleMode() {
 
 // ================= MURAL =================
 
-function getRemainingMuralPosts() {
-  const used = currentUser.muralPostsCount || 0;
-  return muralPostLimit - used;
+async function getRemainingMuralPosts() {
+  if (!supabaseClient || !currentUser.id) return muralPostLimit;
+
+  const { data, error } = await supabaseClient
+    .from("mural_posts")
+    .select("id")
+    .eq("author_id", currentUser.id);
+
+  if (error) {
+    console.error("Erro ao contar posts do mural:", error);
+    return muralPostLimit;
+  }
+
+  return muralPostLimit - (data?.length || 0);
 }
 
-function updateMuralLimitText() {
-  const remaining = getRemainingMuralPosts();
+async function updateMuralLimitText() {
+  const remaining = await getRemainingMuralPosts();
   const limitText = document.getElementById("mural-limit-text");
   const postBtn = document.getElementById("mural-post-btn");
   const input = document.getElementById("mural-input");
@@ -960,13 +1011,13 @@ function fillSuggestion(text) {
   input.focus();
 }
 
-function publishPost() {
+async function publishPost() {
   if (currentUser.mode === "view") {
     alert("No modo Só observando você não pode publicar no mural.");
     return;
   }
 
-  const remaining = getRemainingMuralPosts();
+  const remaining = await getRemainingMuralPosts();
   if (remaining <= 0) {
     alert("Você atingiu o limite de 5 mensagens no mural.");
     return;
@@ -978,59 +1029,18 @@ function publishPost() {
   const text = input.value.trim();
   if (!text) return;
 
-  const newPost = {
-    id: Date.now(),
-    author: currentUser.name,
-    authorPhoto: currentUser.selfie || "",
-    text,
-    time: new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit"
-    }),
-    replies: []
-  };
-
-  muralPosts.unshift(newPost);
-  currentUser.muralPostsCount = (currentUser.muralPostsCount || 0) + 1;
-
-  input.value = "";
-  saveData();
-  renderMural();
-}
-
-function toggleReplyBox(postId) {
-  const box = document.getElementById(`reply-box-${postId}`);
-  if (!box) return;
-  box.classList.toggle("hidden");
-}
-
-function sendReply(postId) {
-  if (currentUser.mode === "view") {
-    alert("No modo Só observando você só pode visualizar o mural.");
-    return;
-  }
-
-  const input = document.getElementById(`reply-input-${postId}`);
-  if (!input) return;
-
-  const text = input.value.trim();
-  if (!text) return;
-
-  const post = muralPosts.find(p => p.id === postId);
-  if (!post) return;
-
-  post.replies.push({
-    id: Date.now(),
-    author: currentUser.name,
+  await supabaseClient.from("mural_posts").insert({
+    author_id: currentUser.id,
+    author_name: currentUser.name,
+    author_photo: currentUser.selfie || "",
     text
   });
 
   input.value = "";
-  saveData();
-  renderMural();
+  await renderMural();
 }
 
-function renderMural() {
+async function renderMural() {
   const compose = document.getElementById("mural-compose");
   const blocked = document.getElementById("mural-blocked");
   const list = document.getElementById("mural-list");
@@ -1045,9 +1055,24 @@ function renderMural() {
     blocked?.classList.add("hidden");
   }
 
-  updateMuralLimitText();
+  await updateMuralLimitText();
 
-  if (muralPosts.length === 0) {
+  const { data: posts, error } = await supabaseClient
+    .from("mural_posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao carregar mural:", error);
+    list.innerHTML = `
+      <div class="mural-post">
+        <div class="mural-post-text">Erro ao carregar o mural.</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!posts || posts.length === 0) {
     list.innerHTML = `
       <div class="mural-post">
         <div class="mural-post-text">O mural tá quietinho. Solta o verbo.</div>
@@ -1056,43 +1081,26 @@ function renderMural() {
     return;
   }
 
-  list.innerHTML = muralPosts.map(post => `
-    <div class="mural-post">
-      <div class="mural-post-header">
-        <img class="mural-avatar" src="${post.authorPhoto || ""}" alt="Foto">
-        <div>
-          <div class="mural-post-name">${post.author}</div>
-          <div class="mural-post-time">${post.time}</div>
-        </div>
-      </div>
+  list.innerHTML = posts.map(post => {
+    const time = new Date(post.created_at).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
 
-      <div class="mural-post-text">${post.text}</div>
-
-      <button class="reply-btn" onclick="toggleReplyBox(${post.id})">Responder</button>
-
-      <div id="reply-box-${post.id}" class="reply-box hidden">
-        <input
-          id="reply-input-${post.id}"
-          class="reply-input"
-          type="text"
-          placeholder="Escreva uma resposta..."
-          maxlength="120"
-        >
-        <div class="reply-actions">
-          <button class="reply-send" onclick="sendReply(${post.id})">Enviar</button>
-        </div>
-      </div>
-
-      <div class="reply-list">
-        ${post.replies.map(reply => `
-          <div class="reply-item">
-            <div class="reply-name">${reply.author}</div>
-            <div class="reply-text">${reply.text}</div>
+    return `
+      <div class="mural-post">
+        <div class="mural-post-header">
+          <img class="mural-avatar" src="${post.author_photo || ""}" alt="Foto">
+          <div>
+            <div class="mural-post-name">${post.author_name}</div>
+            <div class="mural-post-time">${time}</div>
           </div>
-        `).join("")}
+        </div>
+
+        <div class="mural-post-text">${post.text}</div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 // ================= STORAGE =================
