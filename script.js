@@ -807,14 +807,18 @@ function renderQuickChatMessages(matchId) {
   if (!container) return;
 
   container.innerHTML = `
-  <div class="quick-messages-row">
-    ${quickChatMessages.map(msg => `
-      <button class="chat-quick-btn" onclick="sendQuickChatMessage('${matchId}', ${JSON.stringify(msg)})">
-        ${msg}
-      </button>
-    `).join("")}
-  </div>
-`;
+    <div class="quick-messages-row">
+      ${quickChatMessages.map(msg => `
+        <button 
+          type="button"
+          class="chat-quick-btn"
+          onclick="sendQuickChatMessage('${matchId}', ${JSON.stringify(msg)})"
+        >
+          ${msg}
+        </button>
+      `).join("")}
+    </div>
+  `;
 }
 
 async function renderActiveChat() {
