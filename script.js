@@ -3,14 +3,6 @@
 const mockUsers = [
   {
     id: 1,
-    name: "Ana Silva",
-    age: 24,
-    photo: "👩‍🦰",
-    bio: "Amante de café ☕",
-    mode: "active"
-  },
-  {
-    id: 2,
     name: "João Santos",
     age: 27,
     photo: "👨",
@@ -18,39 +10,7 @@ const mockUsers = [
     mode: "view"
   },
   {
-    id: 3,
-    name: "Maria Oliveira",
-    age: 22,
-    photo: "👩",
-    bio: "Viagens e livros 📚",
-    mode: "active"
-  },
-  {
-    id: 4,
-    name: "Roro",
-    age: 24,
-    photo: "👩‍🦰",
-    bio: "Amante de café ☕",
-    mode: "active"
-  },
-  {
-    id: 5,
-    name: "Claudia Silva",
-    age: 24,
-    photo: "👩‍🦰",
-    bio: "Amante de café ☕",
-    mode: "active"
-  },
-  {
-    id: 6,
-    name: "Rosana Silva",
-    age: 24,
-    photo: "👩‍🦰",
-    bio: "Amante de café ☕",
-    mode: "active"
-  },
-  {
-    id: 7,
+    id: 2,
     name: "Pedro Costa",
     age: 29,
     photo: "🧔",
@@ -58,7 +18,7 @@ const mockUsers = [
     mode: "view"
   },
   {
-    id: 8,
+    id: 3,
     name: "Laura Mendes",
     age: 25,
     photo: "👩‍🦳",
@@ -89,6 +49,19 @@ const supabaseClient = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
 
+  let realUsers = [];
+
+  function ensureCurrentUserId() {
+    let savedId = localStorage.getItem("hubbeUserId");
+  
+    if (!savedId) {
+      savedId = crypto.randomUUID();
+      localStorage.setItem("hubbeUserId", savedId);
+    }
+  
+    currentUser.id = savedId;
+  }
+
 const muralPostLimit = 5;
 const chatMessageLimit = 5;
 const quickChatMessages = [
@@ -117,6 +90,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 function init() {
   loadData();
+  ensureCurrentUserId();
   setupOnboarding();
 
   const navItems = document.querySelectorAll(".nav-item");
@@ -355,9 +329,12 @@ function validateForm() {
   if (continueBtn) continueBtn.disabled = !valid;
 }
 
-function completeOnboarding() {
+async function completeOnboarding() {
+  ensureCurrentUserId();
+
   currentUser = {
     ...currentUser,
+    id: currentUser.id,
     name: document.getElementById("user-name").value.trim(),
     age: parseInt(document.getElementById("user-age").value),
     bio: document.getElementById("user-bio").value.trim(),
@@ -371,6 +348,17 @@ function completeOnboarding() {
   };
 
   saveData();
+
+  if (supabaseClient) {
+    await supabaseClient.from("users").upsert({
+      id: currentUser.id,
+      name: currentUser.name,
+      age: currentUser.age,
+      bio: currentUser.bio,
+      photo: currentUser.selfie,
+      mode: "active"
+    });
+  }
 
   const intro = document.getElementById("intro-screen");
   if (intro) intro.classList.remove("hidden");
@@ -388,9 +376,16 @@ function showModeSelection() {
   showView("mode-selection-view");
 }
 
-function selectUsageMode(mode) {
+async function selectUsageMode(mode) {
   currentUser.mode = mode;
   saveData();
+
+  if (supabaseClient) {
+    await supabaseClient
+      .from("users")
+      .update({ mode })
+      .eq("id", currentUser.id);
+  }
 
   const nav = document.getElementById("bottom-nav");
   if (nav) nav.classList.remove("hidden");
@@ -458,32 +453,57 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
   `;
 }
 
-function renderUsers() {
+async function loadRealUsers() {
+  if (!supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from("users")
+    .select("*")
+    .neq("id", currentUser.id);
+
+  if (error) {
+    console.error("Erro ao carregar usuários:", error);
+    realUsers = [];
+    return;
+  }
+
+  realUsers = data || [];
+}
+
+async function renderUsers() {
   const container = document.getElementById("users-list");
   const countEl = document.getElementById("discover-count");
 
   if (!container) return;
 
+  await loadRealUsers();
+
   if (countEl) {
-    const total = mockUsers.length;
+    const total = realUsers.length;
     countEl.textContent = total === 1 ? "1 pessoa" : `${total} pessoas`;
   }
 
   container.innerHTML = `
     <div class="people-grid">
-      ${mockUsers.map(user => {
+      ${realUsers.map(user => {
         const alreadyLiked = (currentUser.likesSent || []).includes(user.id);
 
         return `
           <div class="people-card fade-in">
             <div class="people-photo">
               <div class="online-dot ${user.mode === "active" ? "dot-green" : "dot-yellow"}"></div>
-              <div class="people-img">${user.photo}</div>
+              <div class="people-img">
+                ${
+                  user.photo
+                    ? `<img src="${user.photo}" style="width:100%;height:100%;object-fit:cover;">`
+                    : "👤"
+                }
+              </div>
             </div>
 
             <div class="people-content">
               <h3>${user.name}</h3>
-              <p class="people-bio">"${user.bio}"</p>
+              <p class="people-bio">"${user.bio || ""}"</p>
 
               <div class="people-actions">
                 ${
@@ -499,7 +519,7 @@ function renderUsers() {
                     : `
                       <button 
                         class="chopp-btn ${alreadyLiked ? "active" : ""}" 
-                        onclick="toggleChoppLike(${user.id})"
+                        onclick="toggleChoppLike('${user.id}')"
                         aria-label="Dar chopp para ${user.name}"
                         title="Dar chopp"
                       >
@@ -523,60 +543,63 @@ function renderUsers() {
   }
 }
 
-function toggleChoppLike(id) {
+async function toggleChoppLike(toUserId) {
   if (currentUser.mode === "view") {
     alert("No modo Só observando você não pode interagir.");
     return;
   }
 
-  if (!currentUser.likesSent) currentUser.likesSent = [];
-  if (!currentUser.chatSentCount) currentUser.chatSentCount = {};
-
-  const user = mockUsers.find(u => u.id === id);
-  if (!user) return;
-
-  const alreadyLiked = currentUser.likesSent.includes(id);
-
-  // remover chopp
-  if (alreadyLiked) {
-    currentUser.likesSent = currentUser.likesSent.filter(userId => userId !== id);
-
-    // se quiser remover o chat quando tirar o like, descomente:
-    // currentUser.matches = currentUser.matches.filter(match => match.id !== id);
-    // delete chats[id];
-    // delete currentUser.chatSentCount[id];
-
-    saveData();
-    renderUsers();
-    renderChats();
+  if (!supabaseClient) {
+    alert("Supabase não conectado.");
     return;
   }
 
-  // enviar chopp
-  currentUser.likesSent.push(id);
+  const fromUserId = currentUser.id;
+  if (!fromUserId || !toUserId) return;
 
-  // simulação local: chat só nasce se houver reciprocidade
-  const theyAlsoLiked = Math.random() > 0.5;
+  if (!currentUser.likesSent) currentUser.likesSent = [];
 
-  if (theyAlsoLiked) {
-    const alreadyMatched = currentUser.matches.some(match => match.id === user.id);
+  const alreadyLiked = currentUser.likesSent.includes(toUserId);
 
-    if (!alreadyMatched) {
-      currentUser.matches.push(user);
-    }
+  if (alreadyLiked) {
+    await supabaseClient
+      .from("likes")
+      .delete()
+      .eq("from_user", fromUserId)
+      .eq("to_user", toUserId);
 
-    if (!chats[user.id]) {
-      chats[user.id] = [
-        {
-          from: user.name,
-          text: "Oi, tudo bem? 😊",
-          mine: false
-        }
-      ];
-    }
+    currentUser.likesSent = currentUser.likesSent.filter(id => id !== toUserId);
+    saveData();
+    renderUsers();
+    return;
+  }
 
-    if (!currentUser.chatSentCount[user.id]) {
-      currentUser.chatSentCount[user.id] = 0;
+  await supabaseClient.from("likes").insert({
+    from_user: fromUserId,
+    to_user: toUserId
+  });
+
+  currentUser.likesSent.push(toUserId);
+
+  const { data: reverseLike } = await supabaseClient
+    .from("likes")
+    .select("*")
+    .eq("from_user", toUserId)
+    .eq("to_user", fromUserId);
+
+  if (reverseLike && reverseLike.length > 0) {
+    const { data: existingMatch } = await supabaseClient
+      .from("matches")
+      .select("*")
+      .or(`and(user1.eq.${fromUserId},user2.eq.${toUserId}),and(user1.eq.${toUserId},user2.eq.${fromUserId})`);
+
+    if (!existingMatch || existingMatch.length === 0) {
+      await supabaseClient.from("matches").insert({
+        user1: fromUserId,
+        user2: toUserId
+      });
+
+      alert("Match de chopp liberado 🍻");
     }
   }
 
@@ -584,7 +607,6 @@ function toggleChoppLike(id) {
   renderUsers();
   renderChats();
 }
-
 // ================= CHAT =================
 
 function renderChats() {
