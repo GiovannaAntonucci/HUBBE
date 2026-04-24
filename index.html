@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+    <html lang="pt">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>HUBBE</title>
+            <meta name="description" content="Rede social por proximidade. Curta, combine e converse ao vivo.">
+            <meta name="theme-color" content="#8b5cf6">
+            <link rel="stylesheet" href="style.css">
+            <script src="https://unpkg.com/lucide@latest"></script>
+        </head>
+        <body>
+            <div id="app" class="has-nav">
+<!-- ONBOARDING -->
+            <div id="landing-view" class="onboarding">
+                <h1 class="onboarding-title">HUBBE</h1>
+            <div class="camera-card" id="camera-card">
+            <div class="camera-placeholder">
+                <i data-lucide="camera"></i>
+            </div>
+                <img id="selfie-preview" class="hidden" src="" alt="Selfie">
+                <video
+                 id="camera-video"
+                 class="hidden"
+                 autoplay
+                 playsinline>
+                </video>
+                <canvas id="camera-canvas" class="hidden"></canvas>
+            </div>
+                <button id="selfie-btn" class="btn-selfie">
+                <i data-lucide="camera"></i> Tirar Selfie
+                </button>
+            <div id="selfie-actions" class="hidden selfie-actions">
+                <button id="retake-btn" class="btn-selfie">Tirar outra</button>
+                <button id="confirm-selfie-btn" class="btn-selfie">Ficou boa</button>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Como quer ser chamado?</label>
+                <input 
+                 type="text" 
+                 id="user-name" 
+                 class="input-field" 
+                 placeholder="Nome ou apelido" 
+                 maxlength="20" >
+            </div>
+            <div class="input-group">
+                <label class="input-label">Qual a sua idade?</label>
+                <input 
+                 type="number" 
+                 id="user-age" 
+                 class="input-field" 
+                 placeholder="Ex: 25"
+                 min="18" 
+                 max="120" >
+            <div id="age-warning" class="age-warning hidden">
+              Você precisa ter 18 anos ou mais para usar o HUBBE.
+            </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Qual sua vibe?</label>
+                <input 
+                  type="text" 
+                  id="user-bio" 
+                  class="input-field" 
+                  placeholder="Ex: Amo música, viagens..."
+                  maxlength="50" >
+            <div class="bio-counter" id="bio-counter">0/50</div>
+            </div>
+                <button id="continue-btn" class="btn-continue" disabled>
+                 Continuar
+                </button>
+            </div>
+<!-- ESCOLHA DE MODO -->
+            <div id="mode-selection-view" class="mode-selection-screen hidden">
+            <div class="mode-selection-card">
+              <h2 class="mode-selection-title">Como você quer usar o HUBBE hoje?</h2>
+              <p class="mode-selection-subtitle">
+                Escolha seu modo de uso para continuar.<br>(Se mudar de ideia, altere no perfil)
+              </p>
+              <button class="mode-choice-btn active-choice" onclick="selectUsageMode('active')">
+                <span class="mode-choice-title">Novas Conexões</span>
+                <span class="mode-choice-desc">Interaja, curta e troque mensagens.</span>
+              </button>
+              <button class="mode-choice-btn view-choice" onclick="selectUsageMode('view')">
+                <span class="mode-choice-title">Só observando</span>
+                <span class="mode-choice-desc">Veja perfis e o mural sem interagir.</span>
+              </button>
+            </div>
+            </div>
+<!-- PESSOAS -->
+            <div id="discover-view" class="min-h-screen max-w-md mx-auto px-6 py-4 hidden">
+              <div class="discover-header">
+                <div class="discover-header-left">
+                  <i data-lucide="sparkles"></i>
+                  <h2 class="discover-title">Quem tá aqui</h2>
+                </div>
+              
+                <div class="discover-count" id="discover-count">0 pessoas</div>
+              </div>
+            <div id="users-list"></div>
+            </div>
+<!-- CHAT -->
+<div id="chat-view" class="min-h-screen max-w-md mx-auto px-4 py-4 hidden">
+
+  <!-- LISTA DE CHATS -->
+  <div id="chat-list-screen">
+    <div class="chat-list-header">
+      <div class="chat-list-title-wrap">
+        <i data-lucide="message-circle"></i>
+        <h2 class="chat-list-title">Chats</h2>
+      </div>
+    </div>
+
+    <div id="chat-list" class="chat-list"></div>
+  </div>
+
+  <!-- CONVERSA ABERTA -->
+  <div id="chat-room-screen" class="hidden">
+    <div class="chat-room-header">
+      <button class="chat-back-btn" onclick="backToChatList()">
+        <i data-lucide="arrow-left"></i>
+      </button>
+
+      <div class="chat-room-user">
+        <img id="chat-room-avatar" class="chat-room-avatar" src="" alt="Foto">
+        <div class="chat-room-user-info">
+          <div id="chat-room-name" class="chat-room-name"></div>
+          <div class="chat-room-subtitle">Match 💕</div>
+        </div>
+      </div>
+
+      <button class="chat-room-heart-btn" type="button">
+        <i data-lucide="heart"></i>
+      </button>
+    </div>
+
+    <div id="chat-messages" class="chat-messages"></div>
+
+    <div class="chat-composer-wrap">
+      <div id="chat-remaining-text" class="chat-remaining-text">5 mensagens restantes</div>
+
+      <div id="chat-quick-messages" class="chat-quick-messages"></div>
+
+      <div class="chat-input-row">
+        <input
+          id="chat-input"
+          type="text"
+          placeholder="Escreva sua mensagem..."
+          class="chat-input"
+          maxlength="120"
+        >
+        <button id="chat-send-btn" class="chat-send-btn" type="button" onclick="sendTypedChatMessage()">
+          <i data-lucide="send"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- MURAL -->
+            <div id="mural-view" class="min-h-screen max-w-md mx-auto px-4 py-4 hidden">
+                <h2 class="mural-title">Mural</h2>
+            <div id="mural-compose" class="mural-compose">
+            <div class="mural-suggestions">
+                <button class="suggestion-chip" onclick="fillSuggestion('Alguém recomenda um drink?')">Alguém recomenda um drink?</button>
+                <button class="suggestion-chip" onclick="fillSuggestion('Qual o nome dessa música?')">Qual o nome dessa música?</button>
+                <button class="suggestion-chip" onclick="fillSuggestion('Quem tá por aqui agora?')">Quem tá por aqui agora?</button>
+                <button class="suggestion-chip" onclick="fillSuggestion('Alguém indica uma mesa boa?')">Alguém indica uma mesa boa?</button>
+            </div>
+                <textarea
+                  id="mural-input"
+                  class="mural-input"
+                  placeholder="Escreva algo no mural..."
+                  maxlength="180" >
+                </textarea>
+            <div id="mural-limit-text" class="mural-limit-text">5 mensagens restantes</div>
+                <button id="mural-post-btn" class="mural-post-btn" onclick="publishPost()">
+                  Publicar
+                </button>
+            </div>
+            <div id="mural-blocked" class="mural-blocked hidden">
+              Você está em <strong>Só observando</strong>. Nesse modo você pode ver o mural, mas não pode publicar.
+            </div>
+            <div id="mural-list" class="mural-list"></div>
+            </div>
+<!-- PERFIL -->
+            <div id="profile-view" class="min-h-screen max-w-md mx-auto px-4 py-4 hidden">
+                <h2 class="profile-title">Perfil</h2>
+<!-- CARD PERFIL -->
+            <div class="profile-card">
+                <img
+                  id="profile-photo"
+                  class="profile-photo"
+                  src=""
+                  alt="Foto do perfil">
+            <div class="profile-info">
+                <h3 id="profile-name">Você</h3>
+                <p id="profile-age"></p>
+                <span id="profile-bio"></span>
+            </div>
+            </div>
+<!-- CURTIDAS -->
+            <div class="profile-box">
+            <div class="box-icon"> <i data-lucide="heart"> </i> </div>
+            <div>
+                <strong>
+                <span id="match-count">0</span> Choppadas recebidas
+                </strong>
+                <p>Só você vê esse número.</p>
+            </div>
+            </div>
+<!-- MODOS -->
+                <p class="mode-title">SEU MODO</p>
+<!-- BOTÃO ÚNICO QUE ALTERNA -->
+            <div id="mode-toggle" class="mode-card active-mode" onclick="toggleMode()">
+            <div>
+                <strong id="mode-title-text">Novas conexões</strong>
+                <p id="mode-desc-text">
+                  Interaja, curta, troque mensagens.
+                </p>
+            </div>
+            <div id="mode-dot" class="dot-active"></div>
+            </div>
+<!-- SAIR -->
+                <button
+                  class="logout-btn"
+                  onclick="localStorage.clear(); location.reload();">
+                    Sair
+                </button>
+            </div>
+<!-- MENU INFERIOR -->
+<nav id="bottom-nav" class="bottom-nav hidden">
+  <div class="nav-container">
+    <div class="nav-item active" data-tab="0">
+      <div class="nav-icon"><i data-lucide="users"></i></div>
+      <span>Pessoas</span>
+      <div class="active-dot"></div>
+    </div>
+
+    <div class="nav-item" data-tab="1">
+      <div class="nav-icon"><i data-lucide="message-circle"></i></div>
+      <span>Chats</span>
+      <div class="active-dot"></div>
+    </div>
+
+    <div class="nav-item" data-tab="2">
+      <div class="nav-icon"><i data-lucide="clipboard"></i></div>
+      <span>Mural</span>
+      <div class="active-dot"></div>
+    </div>
+
+    <div class="nav-item" data-tab="3">
+      <div class="nav-icon"><i data-lucide="user"></i></div>
+      <span>Perfil</span>
+      <div class="active-dot"></div>
+    </div>
+  </div>
+</nav>
+<!-- INTRO -->
+            <div id="intro-screen" class="intro-screen hidden">
+              <img src="suaimagem.png" alt="Intro">
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+              <script src="script.js"></script>
+            </div>
+        </body>
+</html>
