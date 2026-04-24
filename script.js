@@ -1129,12 +1129,22 @@ async function renderMural() {
     return;
   }
 
-  list.innerHTML = posts.map(post => {
+  const postsHtml = await Promise.all(posts.map(async post => {
     const time = new Date(post.created_at).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit"
     });
-
+  
+    const { data: replies, error: repliesError } = await supabaseClient
+      .from("mural_replies")
+      .select("*")
+      .eq("post_id", post.id)
+      .order("created_at", { ascending: true });
+  
+    if (repliesError) {
+      console.error("Erro ao carregar respostas:", repliesError);
+    }
+  
     return `
       <div class="mural-post">
         <div class="mural-post-header">
@@ -1144,11 +1154,42 @@ async function renderMural() {
             <div class="mural-post-time">${time}</div>
           </div>
         </div>
-
+  
         <div class="mural-post-text">${post.text}</div>
+  
+        <button class="reply-btn" onclick="toggleReplyBox('${post.id}')">
+          Responder
+        </button>
+  
+        <div id="reply-box-${post.id}" class="reply-box hidden">
+          <input
+            id="reply-input-${post.id}"
+            class="reply-input"
+            type="text"
+            placeholder="Escreva uma resposta..."
+            maxlength="120"
+          >
+  
+          <div class="reply-actions">
+            <button class="reply-send" onclick="sendReply('${post.id}')">
+              Enviar
+            </button>
+          </div>
+        </div>
+  
+        <div class="reply-list">
+          ${(replies || []).map(reply => `
+            <div class="reply-item">
+              <div class="reply-name">${reply.author_name}</div>
+              <div class="reply-text">${reply.text}</div>
+            </div>
+          `).join("")}
+        </div>
       </div>
     `;
-  }).join("");
+  }));
+  
+  list.innerHTML = postsHtml.join("");
 }
 
 // ================= STORAGE =================
@@ -1332,6 +1373,36 @@ function openEditProfile() {
   if (takeBtn) takeBtn.textContent = "Tirar outra foto";
 
   panel.classList.remove("hidden");
+}
+
+// =======================================
+
+function toggleReplyBox(postId) {
+  const box = document.getElementById(`reply-box-${postId}`);
+  if (box) box.classList.toggle("hidden");
+}
+
+async function sendReply(postId) {
+  if (currentUser.mode === "view") {
+    alert("No modo Só observando você só pode visualizar o mural.");
+    return;
+  }
+
+  const input = document.getElementById(`reply-input-${postId}`);
+  if (!input) return;
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  await supabaseClient.from("mural_replies").insert({
+    post_id: postId,
+    author_id: currentUser.id,
+    author_name: currentUser.name,
+    text
+  });
+
+  input.value = "";
+  await renderMural();
 }
 
 // ================= AUX =================
