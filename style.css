@@ -526,9 +526,22 @@ button i {
 }
 .mural-suggestions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-bottom: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.mural-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.suggestion-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .suggestion-chip {
   padding: 8px 12px;
@@ -1348,4 +1361,52 @@ button i {
 
 .edit-btn-primary:hover {
   transform: scale(1.03);
+}
+/* ===== MENSAGENS RÁPIDAS (CARROSSEL) ===== */
+.quick-messages-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 6px;
+
+  scrollbar-width: none;
+}
+
+.quick-messages-row::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-msg-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  background: rgba(57, 208, 216, 0.12);
+  border: 1px solid rgba(57, 208, 216, 0.3);
+  color: var(--turquesa);
+
+  font-size: 13px;
+  font-weight: 600;
+}
+/* ===== SCROLL HORIZONTAL ===== */
+.quick-messages-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 6px;
+
+  scrollbar-width: none;
+}
+
+.quick-messages-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* opcional: deixa mais bonito */
+.quick-messages-row button {
+  flex: 0 0 auto;
 }
