@@ -801,7 +801,6 @@ async function updateChatRemainingText(matchId) {
     btn.disabled = blocked;
   });
 }
-
 function renderQuickChatMessages(matchId) {
   const container = document.getElementById("chat-quick-messages");
   if (!container) return;
@@ -812,13 +811,22 @@ function renderQuickChatMessages(matchId) {
         <button 
           type="button"
           class="chat-quick-btn"
-          onclick="sendQuickChatMessage('${matchId}', ${JSON.stringify(msg)})"
+          data-match-id="${matchId}"
+          data-message="${msg.replace(/"/g, "&quot;")}"
         >
           ${msg}
         </button>
       `).join("")}
     </div>
   `;
+
+  container.querySelectorAll(".chat-quick-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.matchId;
+      const text = btn.dataset.message;
+      sendQuickChatMessage(id, text);
+    });
+  });
 }
 
 async function renderActiveChat() {
