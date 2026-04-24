@@ -806,11 +806,15 @@ function renderQuickChatMessages(matchId) {
   const container = document.getElementById("chat-quick-messages");
   if (!container) return;
 
-  container.innerHTML = quickChatMessages.map(msg => `
-    <button class="chat-quick-btn" onclick="sendQuickChatMessage('${matchId}', ${JSON.stringify(msg)})">
-      ${msg}
-    </button>
-  `).join("");
+  container.innerHTML = `
+  <div class="quick-messages-row">
+    ${quickChatMessages.map(msg => `
+      <button class="chat-quick-btn" onclick="sendQuickChatMessage('${matchId}', ${JSON.stringify(msg)})">
+        ${msg}
+      </button>
+    `).join("")}
+  </div>
+`;
 }
 
 async function renderActiveChat() {
@@ -1374,9 +1378,7 @@ function openEditProfile() {
 
   panel.classList.remove("hidden");
 }
-
 // =======================================
-
 function toggleReplyBox(postId) {
   const box = document.getElementById(`reply-box-${postId}`);
   if (box) box.classList.toggle("hidden");
@@ -1404,9 +1406,7 @@ async function sendReply(postId) {
   input.value = "";
   await renderMural();
 }
-
 // ================= AUX =================
-
 function goBack() {
   setActiveTab(0);
 }
