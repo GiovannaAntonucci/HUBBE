@@ -221,12 +221,55 @@
             </div>
             <div id="mode-dot" class="dot-active"></div>
             </div>
+<!-- BOTÃO EDITAR -->
+<button type="button" class="edit-profile-btn" onclick="openEditProfile()">
+  Editar perfil
+</button>
+
+<div id="edit-profile-panel" class="edit-profile-panel hidden">
+  <h3 class="edit-profile-title">Editar perfil</h3>
+
+  <div class="edit-camera-box">
+    <img id="edit-selfie-preview" class="edit-photo-preview hidden" src="" alt="Nova foto">
+    <video id="edit-camera-video" class="hidden" autoplay playsinline></video>
+    <canvas id="edit-camera-canvas" class="hidden"></canvas>
+  </div>
+
+  <div class="edit-btn-row">
+    <button type="button" id="edit-take-photo-btn" class="edit-btn-secondary" onclick="handleEditPhotoButton()">
+      Tirar outra foto
+    </button>
+  
+    <button type="button" id="save-edit-photo-btn" class="edit-btn-primary hidden" onclick="confirmEditPhoto()">
+      Usar essa foto
+    </button>
+  </div>
+
+  <div class="input-group edit-input-group">
+    <label class="input-label">Como quer ser chamado?</label>
+    <input id="edit-name" class="input-field" placeholder="Nome/apelido">
+  </div>
+
+  <div class="input-group edit-input-group">
+    <label class="input-label">Qual a sua idade?</label>
+    <input id="edit-age" class="input-field" type="number" placeholder="Ex: 25">
+  </div>
+
+  <div class="input-group edit-input-group">
+    <label class="input-label">Qual sua vibe?</label>
+    <input id="edit-bio" class="input-field" placeholder="Ex: Amo música, viagens...">
+  </div>
+
+  <button type="button" class="edit-save-btn" onclick="saveProfileEdit()">Salvar alterações</button>
+  <button type="button" class="edit-cancel-btn" onclick="closeEditProfile()">Cancelar</button>
+</div>
 <!-- SAIR -->
                 <button
                   class="logout-btn"
                   onclick="localStorage.clear(); location.reload();">
                     Sair
                 </button>
+
             </div>
 <!-- MENU INFERIOR -->
 <nav id="bottom-nav" class="bottom-nav hidden">
