@@ -1401,11 +1401,9 @@ button i {
 
   scrollbar-width: none;
 }
-
 .quick-messages-row::-webkit-scrollbar {
   display: none;
 }
-
 /* opcional: deixa mais bonito */
 .quick-messages-row button {
   flex: 0 0 auto;
@@ -1414,8 +1412,19 @@ button i {
   width: 100%;
   overflow: hidden;
 }
-
 .chat-quick-btn {
   flex: 0 0 auto;
   white-space: nowrap;
+}
+#chat-quick-messages .quick-messages-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+#chat-quick-messages .quick-messages-row::-webkit-scrollbar {
+  display: none;
 }
