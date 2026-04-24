@@ -1410,3 +1410,12 @@ button i {
 .quick-messages-row button {
   flex: 0 0 auto;
 }
+#chat-quick-messages {
+  width: 100%;
+  overflow: hidden;
+}
+
+.chat-quick-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
