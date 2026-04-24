@@ -80,19 +80,17 @@ let currentUser = {
 let cameraStream = null;
 let selfieTaken = false;
 let selfieImage = "";
-
 let chats = {};
 let muralPosts = [];
 
 const SUPABASE_URL = "https://ituyoyzxmdphlmcrsszm.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HVrQzmFFniCCSXC5QZ5fhA_ky3EgV2E";
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 
 const muralPostLimit = 5;
-
 const chatMessageLimit = 5;
-
 const quickChatMessages = [
   "Oi, tudo bem? 😊",
   "Te achei interessante!",
