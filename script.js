@@ -49,6 +49,30 @@ const supabaseClient = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
 
+  async function setUserOnline() {
+    if (!supabaseClient || !currentUser.id) return;
+  
+    await supabaseClient
+      .from("users")
+      .update({
+        is_online: true,
+        last_seen: new Date().toISOString()
+      })
+      .eq("id", currentUser.id);
+  }
+  
+  async function setUserOffline() {
+    if (!supabaseClient || !currentUser.id) return;
+  
+    await supabaseClient
+      .from("users")
+      .update({
+        is_online: false,
+        last_seen: new Date().toISOString()
+      })
+      .eq("id", currentUser.id);
+  }
+
   let realUsers = [];
   let realMatches = [];
   let activeMatch = null;
@@ -93,6 +117,10 @@ document.addEventListener("DOMContentLoaded", init);
 function init() {
   loadData();
   ensureCurrentUserId();
+  setUserOnline();
+
+setInterval(setUserOnline, 30000);
+
   setupOnboarding();
 
   const navItems = document.querySelectorAll(".nav-item");
@@ -461,7 +489,8 @@ async function loadRealUsers() {
   const { data, error } = await supabaseClient
     .from("users")
     .select("*")
-    .neq("id", currentUser.id);
+    .neq("id", currentUser.id)
+    .eq("is_online", true);
 
   if (error) {
     console.error("Erro ao carregar usuários:", error);
@@ -879,6 +908,21 @@ async function sendTypedChatMessage() {
 }
 
 // ================= PROFILE =================
+async function getReceivedLikesCount() {
+  if (!supabaseClient || !currentUser.id) return 0;
+
+  const { data, error } = await supabaseClient
+    .from("likes")
+    .select("id")
+    .eq("to_user", currentUser.id);
+
+  if (error) {
+    console.error("Erro ao contar choppadas:", error);
+    return 0;
+  }
+
+  return data.length;
+}
 
 function updateProfile() {
   const name = document.getElementById("profile-name");
@@ -890,7 +934,11 @@ function updateProfile() {
   if (name) name.textContent = currentUser.name;
   if (age) age.textContent = currentUser.age + " anos";
   if (bio) bio.textContent = currentUser.bio;
-  if (matchCount) matchCount.textContent = currentUser.matches.length;
+
+  getReceivedLikesCount().then(count => {
+    if (matchCount) matchCount.textContent = count;
+  });
+
   if (photo) photo.src = currentUser.selfie || "";
 
   setMode(currentUser.mode || "active");
@@ -1121,8 +1169,174 @@ function loadData() {
   if (savedPosts) muralPosts = JSON.parse(savedPosts);
 }
 
+// ================= EDITAR =================
+
+async function handleEditPhotoButton() {
+  const video = document.getElementById("edit-camera-video");
+  const btn = document.getElementById("edit-take-photo-btn");
+
+  if (video.classList.contains("hidden")) {
+    await startEditCamera();
+    btn.textContent = "Tirar foto";
+  } else {
+    captureEditPhoto();
+  }
+}
+
+async function startEditCamera() {
+  const video = document.getElementById("edit-camera-video");
+  const preview = document.getElementById("edit-selfie-preview");
+  const saveBtn = document.getElementById("save-edit-photo-btn");
+
+  editCameraStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "user" }
+  });
+
+  video.srcObject = editCameraStream;
+
+  preview.classList.add("hidden");
+  video.classList.remove("hidden");
+  saveBtn.classList.add("hidden");
+}
+
+function captureEditPhoto() {
+  const video = document.getElementById("edit-camera-video");
+  const canvas = document.getElementById("edit-camera-canvas");
+  const preview = document.getElementById("edit-selfie-preview");
+  const saveBtn = document.getElementById("save-edit-photo-btn");
+  const takeBtn = document.getElementById("edit-take-photo-btn");
+
+  if (!video.videoWidth || !video.videoHeight) {
+    alert("A câmera ainda não carregou. Tente novamente.");
+    return;
+  }
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+// salva igual ao preview da câmera
+ctx.translate(canvas.width, 0);
+ctx.scale(-1, 1);
+ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  editSelfieImage = canvas.toDataURL("image/jpeg", 0.9);
+
+  preview.src = editSelfieImage;
+  preview.classList.remove("hidden");
+  video.classList.add("hidden");
+
+  saveBtn.classList.remove("hidden");
+  takeBtn.textContent = "Tirar outra foto";
+
+  if (editCameraStream) {
+    editCameraStream.getTracks().forEach(track => track.stop());
+    editCameraStream = null;
+  }
+}
+
+function confirmEditPhoto() {
+  if (!editSelfieImage) {
+    alert("Tire uma foto antes de usar.");
+    return;
+  }
+
+  const saveBtn = document.getElementById("save-edit-photo-btn");
+
+  saveBtn.textContent = "Foto selecionada";
+
+  setTimeout(() => {
+    saveBtn.textContent = "Usar essa foto";
+  }, 1200);
+}
+
+async function saveProfileEdit() {
+  currentUser.name = document.getElementById("edit-name").value.trim();
+  currentUser.age = parseInt(document.getElementById("edit-age").value);
+  currentUser.bio = document.getElementById("edit-bio").value.trim();
+  currentUser.selfie = editSelfieImage;
+
+  saveData();
+
+  if (supabaseClient) {
+    await supabaseClient
+      .from("users")
+      .update({
+        name: currentUser.name,
+        age: currentUser.age,
+        bio: currentUser.bio,
+        photo: currentUser.selfie
+      })
+      .eq("id", currentUser.id);
+  }
+
+  updateProfile();
+  renderUsers();
+  closeEditProfile();
+}
+
+// =======================================
+function closeEditProfile() {
+  const panel = document.getElementById("edit-profile-panel");
+  const video = document.getElementById("edit-camera-video");
+  const preview = document.getElementById("edit-selfie-preview");
+  const saveBtn = document.getElementById("save-edit-photo-btn");
+  const takeBtn = document.getElementById("edit-take-photo-btn");
+
+  if (panel) panel.classList.add("hidden");
+
+  if (video) video.classList.add("hidden");
+  if (preview) preview.classList.remove("hidden");
+  if (saveBtn) saveBtn.classList.add("hidden");
+  if (takeBtn) takeBtn.textContent = "Tirar outra foto";
+
+  // volta para a foto atual do usuário
+  editSelfieImage = currentUser.selfie || "";
+
+  if (editCameraStream) {
+    editCameraStream.getTracks().forEach(track => track.stop());
+    editCameraStream = null;
+  }
+}
+
+function openEditProfile() {
+  const panel = document.getElementById("edit-profile-panel");
+
+  if (!panel) {
+    console.error("Painel não encontrado");
+    return;
+  }
+
+  document.getElementById("edit-name").value = currentUser.name || "";
+  document.getElementById("edit-age").value = currentUser.age || "";
+  document.getElementById("edit-bio").value = currentUser.bio || "";
+
+  editSelfieImage = currentUser.selfie || "";
+
+  const preview = document.getElementById("edit-selfie-preview");
+  const video = document.getElementById("edit-camera-video");
+  const saveBtn = document.getElementById("save-edit-photo-btn");
+  const takeBtn = document.getElementById("edit-take-photo-btn");
+
+  if (preview) {
+    preview.src = editSelfieImage;
+    preview.classList.remove("hidden");
+  }
+
+  if (video) video.classList.add("hidden");
+  if (saveBtn) saveBtn.classList.add("hidden");
+  if (takeBtn) takeBtn.textContent = "Tirar outra foto";
+
+  panel.classList.remove("hidden");
+}
+
 // ================= AUX =================
 
 function goBack() {
   setActiveTab(0);
 }
+window.addEventListener("beforeunload", setUserOffline);
