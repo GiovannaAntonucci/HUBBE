@@ -504,78 +504,76 @@ async function loadRealUsers() {
 }
 
 async function renderUsers() {
-  const container = document.getElementById("users-list");
-  const countEl = document.getElementById("discover-count");
-
+  const container = document.getElementById("users-container");
   if (!container) return;
 
   await loadRealUsers();
+
   const matchedUserIds = await getMatchedUserIds();
 
-  if (countEl) {
-    const total = realUsers.length;
-    countEl.textContent = total === 1 ? "1 pessoa" : `${total} pessoas`;
-  }
+  const usersToShow = realUsers.filter(user => user.id !== currentUser.id);
 
   container.innerHTML = `
     <div class="people-grid">
-      ${realUsers.map(user => {
+      ${usersToShow.map(user => {
+
         const alreadyLiked = (currentUser.likesSent || []).includes(user.id);
         const alreadyMatched = matchedUserIds.has(user.id);
 
         return `
-          <div class="people-card fade-in">
+          <div class="people-card">
+
             <div class="people-photo">
-              <div class="online-dot ${user.mode === "active" ? "dot-green" : "dot-yellow"}"></div>
-              <div class="people-img">
-                ${
-                  user.photo
-                    ? `<img src="${user.photo}" style="width:100%;height:100%;object-fit:cover;">`
-                    : "👤"
-                }
-              </div>
+              <img src="${user.photo || ""}" alt="${user.name}">
             </div>
 
             <div class="people-content">
               <h3>${user.name}</h3>
               <p class="people-bio">"${user.bio || ""}"</p>
 
-<div class="people-actions">
-  ${
-    currentUser.mode === "view"
-      ? `
-        <button class="chopp-btn disabled-btn" disabled>
-          <span class="beer-icon-wrap">
-            <span class="beer-bg"></span>
-            <i data-lucide="beer" class="beer-icon"></i>
-          </span>
-        </button>
-      `
-      : `
-        <button 
-          class="chopp-btn ${alreadyLiked ? "active" : ""}" 
-          onclick="toggleChoppLike('${user.id}')"
-          aria-label="Dar chopp para ${user.name}"
-          title="Dar chopp"
-        >
-          <span class="beer-icon-wrap">
-            <span class="beer-bg"></span>
-            <i data-lucide="beer" class="beer-icon"></i>
-          </span>
-        </button>
-      `
-  }
+              <div class="people-actions">
 
-  ${
-    alreadyMatched
-      ? `
-        <button class="user-chat-btn" onclick="openChatWithUser('${user.id}')" title="Abrir chat">
-          <i data-lucide="message-circle"></i>
-        </button>
-      `
-      : ""
-  }
-</div>
+                ${
+                  alreadyMatched
+                    ? `
+                      <button 
+                        class="user-chat-btn" 
+                        onclick="openChatWithUser('${user.id}')" 
+                        title="Abrir chat"
+                      >
+                        <i data-lucide="message-circle"></i>
+                      </button>
+                    `
+                    : ""
+                }
+
+                ${
+                  currentUser.mode === "view"
+                    ? `
+                      <button class="chopp-btn disabled-btn" disabled>
+                        <span class="beer-icon-wrap">
+                          <span class="beer-bg"></span>
+                          <i data-lucide="beer" class="beer-icon"></i>
+                        </span>
+                      </button>
+                    `
+                    : `
+                      <button 
+                        class="chopp-btn ${alreadyLiked ? "active" : ""}" 
+                        onclick="toggleChoppLike('${user.id}')"
+                        aria-label="Dar chopp para ${user.name}"
+                        title="Dar chopp"
+                      >
+                        <span class="beer-icon-wrap">
+                          <span class="beer-bg"></span>
+                          <i data-lucide="beer" class="beer-icon"></i>
+                        </span>
+                      </button>
+                    `
+                }
+
+              </div>
+
             </div>
           </div>
         `;
@@ -583,7 +581,7 @@ async function renderUsers() {
     </div>
   `;
 
-  if (typeof lucide !== "undefined") {
+  if (window.lucide) {
     lucide.createIcons();
   }
 }
@@ -1562,6 +1560,26 @@ async function openChatWithUser(userId) {
 
   currentUser.activeChatId = match.id;
   saveData();
+  setActiveTab(1);
+}
+
+async function openChatWithUser(userId) {
+  if (!supabaseClient || !currentUser.id) return;
+
+  await loadRealMatches();
+
+  const match = realMatches.find(match =>
+    match.user1 === userId || match.user2 === userId
+  );
+
+  if (!match) {
+    alert("Chat ainda não liberado.");
+    return;
+  }
+
+  currentUser.activeChatId = match.id;
+  saveData();
+
   setActiveTab(1);
 }
 
