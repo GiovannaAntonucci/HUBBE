@@ -801,13 +801,6 @@ button i {
   transition: 0.2s ease;
 }
 
-/* BOTÃO CHOPP / LIKE */
-.people-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
-
 .chopp-btn {
   background: transparent;
   border: none;
@@ -832,8 +825,9 @@ button i {
 /* BOTÃO CHOPP / LIKE */
 .people-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-top: 10px;
+  gap: 10px;
 }
 
 .chopp-btn {
@@ -1477,25 +1471,67 @@ button i {
   opacity: 1;
 }
 .user-chat-btn {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin-right: 8px;
-  cursor: pointer;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 
   display: flex;
   align-items: center;
   justify-content: center;
-}
 
+  cursor: pointer;
+}
 .user-chat-btn i {
   width: 22px;
   height: 22px;
-  color: var(--turquesa);
-  stroke-width: 2.2;
+
+  color: var(--turquesa) !important;
+  stroke: var(--turquesa) !important;
+
+  background: transparent !important;
+
   transition: 0.2s ease;
 }
 .user-chat-btn:hover i {
   transform: scale(1.15);
   color: #5ffcff;
+}
+.user-chat-btn,
+.user-chat-btn * {
+  background: none !important;
+  box-shadow: none !important;
+}
+.people-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  margin-top: 10px !important;
+}
+
+.user-chat-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.user-chat-btn i,
+.user-chat-btn svg {
+  width: 26px !important;
+  height: 26px !important;
+  color: var(--turquesa) !important;
+  stroke: var(--turquesa) !important;
+  margin: 0 !important;
+}
+
+.user-chat-btn:hover {
+  transform: scale(1.08);
 }
