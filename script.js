@@ -117,11 +117,11 @@ document.addEventListener("DOMContentLoaded", init);
 function init() {
   loadData();
   ensureCurrentUserId();
+  requestBrowserNotificationPermission();
+  listenToMyNotifications();
   setUserOnline();
 
 setInterval(setUserOnline, 30000);
-checkNewMatches(true);
-setInterval(() => checkNewMatches(false), 5000);
   setupOnboarding();
 
   const navItems = document.querySelectorAll(".nav-item");
@@ -515,8 +515,11 @@ async function renderUsers() {
   const usersToShow = realUsers.filter(user => user.id !== currentUser.id);
 
   if (countEl) {
-    const total = usersToShow.length;
-    countEl.textContent = total === 1 ? "1 pessoa" : `${total} pessoas`;
+    const total = usersToShow.length + 1; // +1 = você
+
+    countEl.textContent = total === 1 
+      ? "1 pessoa" 
+      : `${total} pessoas`;
   }
 
   container.innerHTML = `
@@ -531,7 +534,7 @@ async function renderUsers() {
             <div class="people-photo">
               ${
                 user.photo
-                  ? `<img class="people-photo-img" src="${user.photo}" alt="${user.name}">`
+                  ? `<img class="people-photo-img" src="${user.photo}" alt="${user.name}" onclick="openImageModal('${user.photo}')">`
                   : `<div class="people-img">👤</div>`
               }
 
@@ -650,8 +653,25 @@ async function toggleChoppLike(toUserId) {
         user1: fromUserId,
         user2: toUserId
       });
+      const user = realUsers.find(u => u.id === toUserId);
 
-      alert("Match de chopp liberado 🍻");
+      // 🔔 cria notificação para o OUTRO usuário
+      await createNotification(
+        toUserId,
+        currentUser.id,
+        "brinde",
+        "Novo brinde 🍻",
+        `Você e ${currentUser.name} deram um brinde 🍻`
+      );
+      
+      // 🔔 mostra pra você (app)
+      showAppNotification(`Você e ${user?.name || "alguém"} deram um brinde 🍻`);
+      
+      // 🔔 notificação real (opcional aqui também)
+      showBrowserNotification(
+        "Novo brinde 🍻",
+        `Você e ${user?.name || "alguém"} deram um brinde 🍻`
+      );
     }
   }
 
@@ -744,7 +764,7 @@ async function renderChats() {
 
         <div class="chat-card-main">
           <div class="chat-card-name">${user.name}</div>
-          <div class="chat-card-preview">"Novo match"</div>
+          <div class="chat-card-preview">"Novo brinde 🍻"</div>
         </div>
 
         <div class="chat-card-icon">
@@ -892,7 +912,7 @@ async function renderActiveChat() {
       }).join("")
     : `
       <div class="chat-bubble-row theirs">
-        <div class="chat-bubble theirs">Vocês deram match de chopp 🍻</div>
+        <div class="chat-bubble theirs">Vocês deram um brinde 🍻</div>
       </div>
     `;
 
@@ -988,20 +1008,20 @@ function setMode(mode) {
   const card = document.getElementById("mode-toggle");
   const title = document.getElementById("mode-title-text");
   const desc = document.getElementById("mode-desc-text");
-  const dot = document.getElementById("mode-dot");
+  const switchEl = document.getElementById("mode-switch");
 
+  // RESET VISUAL
   if (card) {
     card.classList.remove("active-green", "active-yellow");
     card.style.borderColor = "";
     card.style.boxShadow = "";
   }
 
-  if (dot) {
-    dot.className = "";
-    dot.id = "mode-dot";
-    dot.style.background = "";
+  if (switchEl) {
+    switchEl.classList.remove("active", "view");
   }
 
+  // MODO ATIVO (verde)
   if (mode === "active") {
     if (card) card.classList.add("active-green");
 
@@ -1010,10 +1030,16 @@ function setMode(mode) {
       title.style.color = "var(--green)";
     }
 
-    if (desc) desc.textContent = "Interaja, curta, troque mensagens.";
+    if (desc) {
+      desc.textContent = "Interaja, curta, troque mensagens.";
+    }
 
-    if (dot) dot.classList.add("dot-active");
+    if (switchEl) {
+      switchEl.classList.add("active");
+    }
+
   } else {
+    // MODO VIEW (amarelo)
     if (card) card.classList.add("active-yellow");
 
     if (title) {
@@ -1021,11 +1047,16 @@ function setMode(mode) {
       title.style.color = "var(--yellow)";
     }
 
-    if (desc) desc.textContent = "Apenas visualizar perfis e mural.";
+    if (desc) {
+      desc.textContent = "Apenas visualizar perfis e mural.";
+    }
 
-    if (dot) dot.classList.add("dot-yellow");
+    if (switchEl) {
+      switchEl.classList.add("view");
+    }
   }
 
+  // Atualiza telas
   if (activeTab === 0) {
     renderUsers();
   }
@@ -1035,11 +1066,16 @@ function setMode(mode) {
   }
 }
 
-function toggleMode() {
-  if (currentUser.mode === "active") {
-    setMode("view");
-  } else {
-    setMode("active");
+async function toggleMode() {
+  const newMode = currentUser.mode === "active" ? "view" : "active";
+
+  setMode(newMode);
+
+  if (supabaseClient && currentUser.id) {
+    await supabaseClient
+      .from("users")
+      .update({ mode: newMode })
+      .eq("id", currentUser.id);
   }
 
   if (typeof lucide !== "undefined") {
@@ -1474,71 +1510,73 @@ function setupHorizontalFade(scrollerId) {
 
 // ================= NOTIFICAÇÕES ==================
 
-let notifiedMatchIds = new Set(
-  JSON.parse(localStorage.getItem("hubbeNotifiedMatches") || "[]")
-);
+async function requestBrowserNotificationPermission() {
+  if (!("Notification" in window)) return;
 
-function saveNotifiedMatchIds() {
-  localStorage.setItem(
-    "hubbeNotifiedMatches",
-    JSON.stringify([...notifiedMatchIds])
-  );
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
 }
 
-async function getUserNameById(userId) {
-  const found = realUsers.find(user => user.id === userId);
-  if (found) return found.name;
+function showAppNotification(message) {
+  const notification = document.createElement("div");
+  notification.className = "hubbe-notification";
+  notification.textContent = message;
 
-  const { data } = await supabaseClient
-    .from("users")
-    .select("name")
-    .eq("id", userId)
-    .single();
+  document.body.appendChild(notification);
 
-  return data?.name || "alguém";
-}
-
-function showBrindeNotification(otherName) {
-  const toast = document.createElement("div");
-  toast.className = "brinde-toast";
-  toast.innerHTML = `🥂 Você e <strong>${otherName}</strong> deram um brinde!`;
-
-  document.body.appendChild(toast);
+  setTimeout(() => notification.classList.add("show"), 100);
 
   setTimeout(() => {
-    toast.classList.add("show");
-  }, 50);
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-    setTimeout(() => toast.remove(), 300);
+    notification.classList.remove("show");
+    setTimeout(() => notification.remove(), 300);
   }, 3500);
 }
 
-async function checkNewMatches(silent = false) {
+function showBrowserNotification(title, message) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  new Notification(title, {
+    body: message,
+    icon: "icon.png"
+  });
+}
+
+async function createNotification(userId, fromUserId, type, title, message) {
+  if (!supabaseClient) return;
+
+  await supabaseClient.from("notifications").insert({
+    user_id: userId,
+    from_user_id: fromUserId,
+    type,
+    title,
+    message,
+    is_read: false
+  });
+}
+
+function listenToMyNotifications() {
   if (!supabaseClient || !currentUser.id) return;
 
-  const { data: matches } = await supabaseClient
-    .from("matches")
-    .select("*")
-    .or(`user1.eq.${currentUser.id},user2.eq.${currentUser.id}`);
+  supabaseClient
+    .channel("my-notifications-" + currentUser.id)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${currentUser.id}`
+      },
+      payload => {
+        const notification = payload.new;
 
-  for (const match of matches || []) {
-    if (notifiedMatchIds.has(match.id)) continue;
-
-    const otherUserId = match.user1 === currentUser.id ? match.user2 : match.user1;
-
-    if (!silent) {
-      const otherName = await getUserNameById(otherUserId);
-      showBrindeNotification(otherName);
-      renderChats();
-      renderUsers();
-    }
-
-    notifiedMatchIds.add(match.id);
-  }
-
-  saveNotifiedMatchIds();
+        showAppNotification(notification.message);
+        showBrowserNotification(notification.title, notification.message);
+      }
+    )
+    .subscribe();
 }
 
 async function getMatchedUserIds() {
@@ -1575,6 +1613,21 @@ async function openChatWithUser(userId) {
   currentUser.activeChatId = match.id;
   saveData();
   setActiveTab(1);
+}
+
+// ================= ZOOM =================
+
+function openImageModal(src) {
+  const modal = document.getElementById("image-modal");
+  const img = document.getElementById("image-modal-img");
+
+  img.src = src;
+  modal.classList.remove("hidden");
+}
+
+function closeImageModal() {
+  const modal = document.getElementById("image-modal");
+  modal.classList.add("hidden");
 }
 
 // ================= AUX =================
