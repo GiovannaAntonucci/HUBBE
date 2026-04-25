@@ -1,5 +1,3 @@
-// HUBBE Web App Logic
-
 const mockUsers = [
   {
     id: 1,
@@ -26,7 +24,6 @@ const mockUsers = [
     mode: "active"
   }
 ];
-
 let currentUser = {
   name: "Você",
   matches: [],
@@ -36,22 +33,18 @@ let currentUser = {
   mode: "active",
   muralPostsCount: 0
 };
-
 let cameraStream = null;
 let selfieTaken = false;
 let selfieImage = "";
 let chats = {};
 let muralPosts = [];
-
 const SUPABASE_URL = "https://ituyoyzxmdphlmcrsszm.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HVrQzmFFniCCSXC5QZ5fhA_ky3EgV2E";
 const supabaseClient = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
-
   async function setUserOnline() {
     if (!supabaseClient || !currentUser.id) return;
-  
     await supabaseClient
       .from("users")
       .update({
@@ -60,10 +53,8 @@ const supabaseClient = window.supabase
       })
       .eq("id", currentUser.id);
   }
-  
   async function setUserOffline() {
     if (!supabaseClient || !currentUser.id) return;
-  
     await supabaseClient
       .from("users")
       .update({
@@ -72,22 +63,17 @@ const supabaseClient = window.supabase
       })
       .eq("id", currentUser.id);
   }
-
   let realUsers = [];
   let realMatches = [];
   let activeMatch = null;
-
   function ensureCurrentUserId() {
     let savedId = localStorage.getItem("hubbeUserId");
-  
     if (!savedId) {
       savedId = crypto.randomUUID();
       localStorage.setItem("hubbeUserId", savedId);
     }
-  
     currentUser.id = savedId;
   }
-
 const muralPostLimit = 5;
 const chatMessageLimit = 5;
 const quickChatMessages = [
@@ -100,39 +86,29 @@ const quickChatMessages = [
   "Posso te mandar um drink?",
   "Vamos dançar? 💃🕺"
 ];
-
 let activeTab = 0;
-
 const navTabs = [
   "discover-view",
   "chat-view",
   "mural-view",
   "profile-view"
 ];
-
 document.addEventListener("DOMContentLoaded", init);
-
 // ================= INIT =================
-
 function init() {
   loadData();
   ensureCurrentUserId();
   requestBrowserNotificationPermission();
   listenToMyNotifications();
   setUserOnline();
-
 setInterval(setUserOnline, 30000);
   setupOnboarding();
-
   const navItems = document.querySelectorAll(".nav-item");
-
   navItems.forEach((item, index) => {
     item.addEventListener("click", () => setActiveTab(index));
   });
-
   if (hasCompleteProfile()) {
     selfieTaken = true;
-
     if (!currentUser.mode) {
       showModeSelection();
     } else {
@@ -141,27 +117,20 @@ setInterval(setUserOnline, 30000);
       setActiveTab(0);
     }
   }
-
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
   setupHorizontalFade("mural-suggestions");
 }
-
 // ================= VIEWS =================
-
 function setActiveTab(index) {
   activeTab = index;
-
   document.querySelectorAll(".nav-item").forEach((item, i) => {
     item.classList.toggle("active", i === index);
   });
-
   showView(navTabs[index]);
-
   if (index === 3) updateProfile();
 }
-
 function showView(viewId) {
   const views = [
     "landing-view",
@@ -171,27 +140,21 @@ function showView(viewId) {
     "mural-view",
     "profile-view"
   ];
-
   views.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add("hidden");
   });
-
   const target = document.getElementById(viewId);
   if (target) target.classList.remove("hidden");
-
   if (viewId === "discover-view") renderUsers();
   if (viewId === "chat-view") renderChats();
   if (viewId === "mural-view") renderMural();
   if (viewId === "profile-view") updateProfile();
-
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
 }
-
 // ================= ONBOARDING =================
-
 function setupOnboarding() {
   const selfieBtn = document.getElementById("selfie-btn");
   const retakeBtn = document.getElementById("retake-btn");
@@ -200,35 +163,28 @@ function setupOnboarding() {
   const bioInput = document.getElementById("user-bio");
   const nameInput = document.getElementById("user-name");
   const ageInput = document.getElementById("user-age");
-
   if (selfieBtn) selfieBtn.addEventListener("click", handleSelfieButton);
   if (retakeBtn) retakeBtn.addEventListener("click", retakeSelfie);
   if (confirmSelfieBtn) confirmSelfieBtn.addEventListener("click", confirmSelfie);
-
   [nameInput, ageInput, bioInput].forEach(input => {
     if (input) input.addEventListener("input", validateForm);
   });
-
   if (bioInput) {
     bioInput.addEventListener("input", () => {
       const counter = document.getElementById("bio-counter");
       if (counter) counter.textContent = bioInput.value.length + "/50";
     });
   }
-
   if (continueBtn) continueBtn.addEventListener("click", completeOnboarding);
 }
-
 async function handleSelfieButton() {
   const video = document.getElementById("camera-video");
-
   if (video.classList.contains("hidden")) {
     await openCamera();
   } else {
     captureSelfie();
   }
 }
-
 async function openCamera() {
   try {
     const video = document.getElementById("camera-video");
@@ -236,23 +192,18 @@ async function openCamera() {
     const placeholder = document.querySelector(".camera-placeholder");
     const btn = document.getElementById("selfie-btn");
     const actions = document.getElementById("selfie-actions");
-
     if (!cameraStream) {
       cameraStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" }
       });
     }
-
     video.srcObject = cameraStream;
-
     preview.classList.add("hidden");
     video.classList.remove("hidden");
     if (placeholder) placeholder.classList.add("hidden");
     if (actions) actions.classList.add("hidden");
-
     btn.classList.remove("hidden");
     btn.innerHTML = '<i data-lucide="camera"></i> Tirar foto';
-
     if (typeof lucide !== "undefined") {
       lucide.createIcons();
     }
@@ -261,109 +212,82 @@ async function openCamera() {
     console.error(error);
   }
 }
-
 function captureSelfie() {
   const video = document.getElementById("camera-video");
   const canvas = document.getElementById("camera-canvas");
   const preview = document.getElementById("selfie-preview");
   const btn = document.getElementById("selfie-btn");
   const actions = document.getElementById("selfie-actions");
-
   if (!video.videoWidth || !video.videoHeight) {
     alert("A câmera ainda não carregou. Tente novamente.");
     return;
   }
-
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-
   const ctx = canvas.getContext("2d");
-
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   ctx.translate(canvas.width, 0);
   ctx.scale(-1, 1);
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
   selfieImage = canvas.toDataURL("image/jpeg", 0.9);
-
   preview.src = selfieImage;
   preview.classList.remove("hidden");
   video.classList.add("hidden");
-
   btn.classList.add("hidden");
   if (actions) actions.classList.remove("hidden");
 }
-
 function retakeSelfie() {
   const video = document.getElementById("camera-video");
   const preview = document.getElementById("selfie-preview");
   const btn = document.getElementById("selfie-btn");
   const actions = document.getElementById("selfie-actions");
-
   preview.classList.add("hidden");
   video.classList.remove("hidden");
-
   if (actions) actions.classList.add("hidden");
   btn.classList.remove("hidden");
   btn.innerHTML = '<i data-lucide="camera"></i> Tirar foto';
-
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
 }
-
 function confirmSelfie() {
   const actions = document.getElementById("selfie-actions");
   const btn = document.getElementById("selfie-btn");
-
   if (!selfieImage) {
     alert("Nenhuma selfie foi tirada.");
     return;
   }
-
   selfieTaken = true;
   localStorage.setItem("hubbe_selfie", selfieImage);
-
   if (cameraStream) {
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
   }
-
   if (actions) actions.classList.add("hidden");
   btn.classList.remove("hidden");
   btn.innerHTML = '<i data-lucide="camera"></i> Nova Selfie';
-
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
-
   validateForm();
 }
-
 function validateForm() {
   const name = document.getElementById("user-name")?.value.trim();
   const age = parseInt(document.getElementById("user-age")?.value);
   const bio = document.getElementById("user-bio")?.value.trim();
-
   const warning = document.getElementById("age-warning");
   const continueBtn = document.getElementById("continue-btn");
-
   if (age && age < 18) {
     warning?.classList.remove("hidden");
   } else {
     warning?.classList.add("hidden");
   }
-
   const valid = name && age >= 18 && bio && selfieTaken;
-
   if (continueBtn) continueBtn.disabled = !valid;
 }
-
 async function completeOnboarding() {
   ensureCurrentUserId();
-
   currentUser = {
     ...currentUser,
     id: currentUser.id,
@@ -378,9 +302,7 @@ async function completeOnboarding() {
     mode: "",
     muralPostsCount: currentUser.muralPostsCount || 0
   };
-
   saveData();
-
   if (supabaseClient) {
     await supabaseClient.from("users").upsert({
       id: currentUser.id,
@@ -391,40 +313,31 @@ async function completeOnboarding() {
       mode: "active"
     });
   }
-
   const intro = document.getElementById("intro-screen");
   if (intro) intro.classList.remove("hidden");
-
   setTimeout(() => {
     if (intro) intro.classList.add("hidden");
     showModeSelection();
   }, 2200);
 }
-
 function showModeSelection() {
   const nav = document.getElementById("bottom-nav");
   if (nav) nav.classList.add("hidden");
-
   showView("mode-selection-view");
 }
-
 async function selectUsageMode(mode) {
   currentUser.mode = mode;
   saveData();
-
   if (supabaseClient) {
     await supabaseClient
       .from("users")
       .update({ mode })
       .eq("id", currentUser.id);
   }
-
   const nav = document.getElementById("bottom-nav");
   if (nav) nav.classList.remove("hidden");
-
   setActiveTab(0);
 }
-
 function hasCompleteProfile() {
   return (
     currentUser.name &&
@@ -433,13 +346,10 @@ function hasCompleteProfile() {
     currentUser.selfie
   );
 }
-
 // ================= USERS =================
-
 function getBeerIconMarkup(isActive, isDisabled = false) {
   const fillOpacity = isActive ? "1" : "0";
   const strokeOpacity = isDisabled ? "0.28" : "1";
-
   return `
     <svg class="beer-svg" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -447,7 +357,6 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
         fill="rgba(255, 212, 59, ${fillOpacity})"
         stroke="none"
       ></path>
-
       <path
         d="M6 5h10v11a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4V5Z"
         fill="none"
@@ -456,7 +365,6 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
         stroke-linecap="round"
         stroke-linejoin="round"
       ></path>
-
       <path
         d="M16 8h1.5a2.5 2.5 0 0 1 0 5H16"
         fill="none"
@@ -465,7 +373,6 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
         stroke-linecap="round"
         stroke-linejoin="round"
       ></path>
-
       <path
         d="M8 9h6"
         fill="none"
@@ -473,7 +380,6 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
         stroke-width="1.6"
         stroke-linecap="round"
       ></path>
-
       <path
         d="M8.8 12h5.2"
         fill="none"
@@ -484,67 +390,51 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
     </svg>
   `;
 }
-
 async function loadRealUsers() {
   if (!supabaseClient) return;
-
   const { data, error } = await supabaseClient
     .from("users")
     .select("*")
     .neq("id", currentUser.id)
     .eq("is_online", true);
-
   if (error) {
     console.error("Erro ao carregar usuários:", error);
     realUsers = [];
     return;
   }
-
   realUsers = data || [];
 }
-
 async function renderUsers() {
   const container = document.getElementById("users-list");
   const countEl = document.getElementById("discover-count");
-
   if (!container) return;
-
   await loadRealUsers();
-
   const matchedUserIds = await getMatchedUserIds();
   const usersToShow = realUsers.filter(user => user.id !== currentUser.id);
-
   if (countEl) {
     const total = usersToShow.length + 1; // +1 = você
-
     countEl.textContent = total === 1 
       ? "1 pessoa" 
       : `${total} pessoas`;
   }
-
   container.innerHTML = `
     <div class="people-grid">
       ${usersToShow.map(user => {
         const alreadyLiked = (currentUser.likesSent || []).includes(user.id);
         const alreadyMatched = matchedUserIds.has(user.id);
-
         return `
           <div class="people-card fade-in">
-
             <div class="people-photo">
               ${
                 user.photo
                   ? `<img class="people-photo-img" src="${user.photo}" alt="${user.name}" onclick="openImageModal('${user.photo}')">`
                   : `<div class="people-img">👤</div>`
               }
-
               <span class="online-dot ${user.mode === "active" ? "dot-green" : "dot-yellow"}"></span>
             </div>
-
             <div class="people-content">
               <h3>${user.name}</h3>
               <p class="people-bio">"${user.bio || ""}"</p>
-
               <div class="people-actions">
                 <div class="left-actions">
                   ${
@@ -553,15 +443,12 @@ async function renderUsers() {
                         <button 
                           class="user-chat-btn" 
                           onclick="openChatWithUser('${user.id}')"
-                          title="Abrir chat"
-                        >
+                          title="Abrir chat">
                           <i data-lucide="message-circle"></i>
-                        </button>
-                      `
+                        </button>`
                       : ""
                   }
                 </div>
-
                 <div class="right-actions">
                   ${
                     currentUser.mode === "view"
@@ -589,13 +476,11 @@ async function renderUsers() {
                 </div>
               </div>
             </div>
-
           </div>
         `;
       }).join("")}
     </div>
   `;
-
   if (window.lucide) lucide.createIcons();
 }
 async function toggleChoppLike(toUserId) {
@@ -603,58 +488,46 @@ async function toggleChoppLike(toUserId) {
     alert("No modo Só observando você não pode interagir.");
     return;
   }
-
   if (!supabaseClient) {
     alert("Supabase não conectado.");
     return;
   }
-
   const fromUserId = currentUser.id;
   if (!fromUserId || !toUserId) return;
-
   if (!currentUser.likesSent) currentUser.likesSent = [];
-
   const alreadyLiked = currentUser.likesSent.includes(toUserId);
-
   if (alreadyLiked) {
     await supabaseClient
       .from("likes")
       .delete()
       .eq("from_user", fromUserId)
       .eq("to_user", toUserId);
-
     currentUser.likesSent = currentUser.likesSent.filter(id => id !== toUserId);
     saveData();
     renderUsers();
     return;
   }
-
   await supabaseClient.from("likes").insert({
     from_user: fromUserId,
     to_user: toUserId
   });
-
   currentUser.likesSent.push(toUserId);
-
   const { data: reverseLike } = await supabaseClient
     .from("likes")
     .select("*")
     .eq("from_user", toUserId)
     .eq("to_user", fromUserId);
-
   if (reverseLike && reverseLike.length > 0) {
     const { data: existingMatch } = await supabaseClient
       .from("matches")
       .select("*")
       .or(`and(user1.eq.${fromUserId},user2.eq.${toUserId}),and(user1.eq.${toUserId},user2.eq.${fromUserId})`);
-
     if (!existingMatch || existingMatch.length === 0) {
       await supabaseClient.from("matches").insert({
         user1: fromUserId,
         user2: toUserId
       });
       const user = realUsers.find(u => u.id === toUserId);
-
       // 🔔 cria notificação para o OUTRO usuário
       await createNotification(
         toUserId,
@@ -663,10 +536,8 @@ async function toggleChoppLike(toUserId) {
         "Novo brinde 🍻",
         `Você e ${currentUser.name} deram um brinde 🍻`
       );
-      
       // 🔔 mostra pra você (app)
       showAppNotification(`Você e ${user?.name || "alguém"} deram um brinde 🍻`);
-      
       // 🔔 notificação real (opcional aqui também)
       showBrowserNotification(
         "Novo brinde 🍻",
@@ -674,38 +545,29 @@ async function toggleChoppLike(toUserId) {
       );
     }
   }
-
   saveData();
   renderUsers();
   renderChats();
 }
-
 // ================= CHAT =================
-
 async function loadRealMatches() {
   if (!supabaseClient || !currentUser.id) return [];
-
   const { data: matchesData, error } = await supabaseClient
     .from("matches")
     .select("*")
     .or(`user1.eq.${currentUser.id},user2.eq.${currentUser.id}`);
-
   if (error) {
     console.error("Erro ao carregar matches:", error);
     return [];
   }
-
   const enrichedMatches = [];
-
   for (const match of matchesData || []) {
     const otherUserId = match.user1 === currentUser.id ? match.user2 : match.user1;
-
     const { data: userData, error: userError } = await supabaseClient
       .from("users")
       .select("*")
       .eq("id", otherUserId)
       .single();
-
     if (!userError && userData) {
       enrichedMatches.push({
         ...match,
@@ -713,7 +575,6 @@ async function loadRealMatches() {
       });
     }
   }
-
   realMatches = enrichedMatches;
   return enrichedMatches;
 }
@@ -1031,7 +892,7 @@ function setMode(mode) {
     }
 
     if (desc) {
-      desc.textContent = "Interaja, curta, troque mensagens.";
+      desc.textContent = "Interaja com as pessoas que estão aqui.";
     }
 
     if (switchEl) {
@@ -1048,7 +909,7 @@ function setMode(mode) {
     }
 
     if (desc) {
-      desc.textContent = "Apenas visualizar perfis e mural.";
+      desc.textContent = "Você só podera vizualizar, sem interação.";
     }
 
     if (switchEl) {
@@ -1609,7 +1470,6 @@ async function openChatWithUser(userId) {
     alert("Chat ainda não liberado.");
     return;
   }
-
   currentUser.activeChatId = match.id;
   saveData();
   setActiveTab(1);
@@ -1620,16 +1480,100 @@ async function openChatWithUser(userId) {
 function openImageModal(src) {
   const modal = document.getElementById("image-modal");
   const img = document.getElementById("image-modal-img");
-
   img.src = src;
   modal.classList.remove("hidden");
 }
-
 function closeImageModal() {
   const modal = document.getElementById("image-modal");
   modal.classList.add("hidden");
 }
-
+async function logoutUser() {
+  if (!currentUser.id) {
+    localStorage.clear();
+    location.reload();
+    return;
+  }
+  const userId = currentUser.id;
+  if (supabaseClient) {
+// marca offline antes de remover tudo
+    await setUserOffline();
+// 1. Busca brindes/chats da pessoa
+    const { data: userMatches } = await supabaseClient
+      .from("matches")
+      .select("id")
+      .or(`user1.eq.${userId},user2.eq.${userId}`);
+    const matchIds = (userMatches || []).map(match => match.id);
+// 2. Apaga mensagens dos chats dela
+    if (matchIds.length > 0) {
+      await supabaseClient
+        .from("messages")
+        .delete()
+        .in("match_id", matchIds);
+    }
+// 3. Apaga brindes/chats dela
+    await supabaseClient
+      .from("matches")
+      .delete()
+      .or(`user1.eq.${userId},user2.eq.${userId}`);
+//4. Apaga choppadas enviadas e recebidas
+    await supabaseClient
+      .from("likes")
+      .delete()
+      .or(`from_user.eq.${userId},to_user.eq.${userId}`);
+// 5. Apaga respostas do mural feitas por ela
+    await supabaseClient
+      .from("mural_replies")
+      .delete()
+      .eq("author_id", userId);
+// 6. Busca posts dela no mural
+    const { data: posts } = await supabaseClient
+      .from("mural_posts")
+      .select("id")
+      .eq("author_id", userId);
+    const postIds = (posts || []).map(post => post.id);
+// 7. Apaga respostas nos posts dela
+    if (postIds.length > 0) {
+      await supabaseClient
+        .from("mural_replies")
+        .delete()
+        .in("post_id", postIds);
+    }
+// 8. Apaga posts dela
+    await supabaseClient
+      .from("mural_posts")
+      .delete()
+      .eq("author_id", userId);
+// 9. Apaga notificações dela
+    await supabaseClient
+      .from("notifications")
+      .delete()
+      .or(`user_id.eq.${userId},from_user_id.eq.${userId}`);
+// 10. Apaga perfil dela
+    await supabaseClient
+      .from("users")
+      .delete()
+      .eq("id", userId);
+  }
+  localStorage.clear();
+  location.reload();
+}
+function listenUsersRealtime() {
+  if (!supabaseClient) return;
+  supabaseClient
+    .channel("users-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "users"
+      },
+      () => {
+        renderUsers();
+      }
+    )
+    .subscribe();
+}
 // ================= AUX =================
 function goBack() {
   setActiveTab(0);
