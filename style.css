@@ -1471,44 +1471,43 @@ button i {
 .scroll-fade-wrap.has-right-fade::after {
   opacity: 1;
 }
-.user-chat-btn {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  cursor: pointer;
+.people-card {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 300px !important;
 }
-.user-chat-btn i {
-  width: 22px;
-  height: 22px;
 
-  color: var(--turquesa) !important;
-  stroke: var(--turquesa) !important;
+.people-photo {
+  height: 180px !important;
+  flex-shrink: 0 !important;
+}
 
-  background: transparent !important;
+.people-photo-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
 
-  transition: 0.2s ease;
+.people-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  padding: 14px !important;
 }
-.user-chat-btn:hover i {
-  transform: scale(1.15);
-  color: #5ffcff;
-}
-.user-chat-btn,
-.user-chat-btn * {
-  background: none !important;
-  box-shadow: none !important;
-}
+
 .people-actions {
+  margin-top: auto !important;
+  width: 100% !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 10px !important;
-  margin-top: 10px !important;
+  justify-content: space-between !important;
+}
+
+.left-actions,
+.right-actions {
+  display: flex !important;
+  align-items: center !important;
 }
 
 .user-chat-btn {
@@ -1517,58 +1516,14 @@ button i {
   box-shadow: none !important;
   padding: 0 !important;
   margin: 0 !important;
-  width: 28px !important;
-  height: 28px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  color: var(--turquesa) !important;
 }
 
 .user-chat-btn i,
 .user-chat-btn svg {
   width: 26px !important;
   height: 26px !important;
-  color: var(--turquesa) !important;
   stroke: var(--turquesa) !important;
+  color: var(--turquesa) !important;
   margin: 0 !important;
-}
-
-.user-chat-btn:hover {
-  transform: scale(1.08);
-}
-.people-photo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.right-actions {
-  display: flex;
-  align-items: center;
-}
-.people-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.right-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.user-chat-btn {
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0;
-  cursor: pointer;
-}
-
-.user-chat-btn i {
-  width: 24px;
-  height: 24px;
-  color: var(--turquesa);
-  stroke: var(--turquesa);
 }
