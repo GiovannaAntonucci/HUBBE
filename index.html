@@ -7,7 +7,6 @@
             <meta name="description" content="Rede social por proximidade. Curta, combine e converse ao vivo.">
             <meta name="theme-color" content="#8b5cf6">
             <link rel="stylesheet" href="style.css">
-            <script src="https://unpkg.com/lucide@latest"></script>
         </head>
         <body>
             <div id="app" class="has-nav">
@@ -125,7 +124,7 @@
         <img id="chat-room-avatar" class="chat-room-avatar" src="" alt="Foto">
         <div class="chat-room-user-info">
           <div id="chat-room-name" class="chat-room-name"></div>
-          <div class="chat-room-subtitle">Match 💕</div>
+          <div class="chat-room-subtitle">Brinde 🍻</div>
         </div>
       </div>
 
@@ -182,7 +181,7 @@
     <textarea
       id="mural-input"
       class="mural-input"
-      placeholder="Escreva algo no mural..."
+      placeholder="Solta uma ideia para galera..."
       maxlength="180"
     ></textarea>
     <!-- CONTADOR -->
@@ -238,7 +237,7 @@
                   Interaja, curta, troque mensagens.
                 </p>
             </div>
-            <div id="mode-dot" class="dot-active"></div>
+            <div id="mode-switch" class="mode-switch active"></div>
             </div>
 <!-- BOTÃO EDITAR -->
 <button type="button" class="edit-profile-btn" onclick="openEditProfile()">
@@ -323,5 +322,8 @@
               <script src="https://unpkg.com/lucide@latest"></script>
               <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
               <script src="script.js"></script>
+              <div id="image-modal" class="image-modal hidden" onclick="closeImageModal()">
+                <img id="image-modal-img" src="" alt="Zoom">
+              </div>
         </body>
 </html>
