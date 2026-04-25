@@ -516,7 +516,7 @@ async function renderUsers() {
   // remove você da lista
   const usersToShow = realUsers.filter(user => user.id !== currentUser.id);
 
-  // contador de pessoas
+  // contador
   if (countEl) {
     const total = usersToShow.length;
     countEl.textContent = total === 1 ? "1 pessoa" : `${total} pessoas`;
@@ -535,7 +535,7 @@ async function renderUsers() {
             <div class="people-photo">
               ${
                 user.photo
-                  ? `<img class="people-img" src="${user.photo}" alt="${user.name}">`
+                  ? `<img class="people-photo-img" src="${user.photo}" alt="${user.name}">`
                   : `<div class="people-img">👤</div>`
               }
 
@@ -566,29 +566,31 @@ async function renderUsers() {
                     : ""
                 }
 
-                ${
-                  currentUser.mode === "view"
-                    ? `
-                      <button class="chopp-btn disabled-btn" disabled>
-                        <span class="beer-icon-wrap">
-                          <span class="beer-bg"></span>
-                          <i data-lucide="beer" class="beer-icon"></i>
-                        </span>
-                      </button>
-                    `
-                    : `
-                      <button 
-                        class="chopp-btn ${alreadyLiked ? "active" : ""}" 
-                        onclick="toggleChoppLike('${user.id}')"
-                        title="Dar chopp"
-                      >
-                        <span class="beer-icon-wrap">
-                          <span class="beer-bg"></span>
-                          <i data-lucide="beer" class="beer-icon"></i>
-                        </span>
-                      </button>
-                    `
-                }
+                <div class="right-actions">
+                  ${
+                    currentUser.mode === "view"
+                      ? `
+                        <button class="chopp-btn disabled-btn" disabled>
+                          <span class="beer-icon-wrap">
+                            <span class="beer-bg"></span>
+                            <i data-lucide="beer" class="beer-icon"></i>
+                          </span>
+                        </button>
+                      `
+                      : `
+                        <button 
+                          class="chopp-btn ${alreadyLiked ? "active" : ""}" 
+                          onclick="toggleChoppLike('${user.id}')"
+                          title="Dar chopp"
+                        >
+                          <span class="beer-icon-wrap">
+                            <span class="beer-bg"></span>
+                            <i data-lucide="beer" class="beer-icon"></i>
+                          </span>
+                        </button>
+                      `
+                  }
+                </div>
 
               </div>
             </div>
@@ -598,7 +600,7 @@ async function renderUsers() {
     </div>
   `;
 
-  // recria os ícones
+  // recria ícones
   if (window.lucide) {
     lucide.createIcons();
   }
