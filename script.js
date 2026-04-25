@@ -120,7 +120,8 @@ function init() {
   setUserOnline();
 
 setInterval(setUserOnline, 30000);
-
+checkNewMatches(true);
+setInterval(() => checkNewMatches(false), 5000);
   setupOnboarding();
 
   const navItems = document.querySelectorAll(".nav-item");
@@ -144,6 +145,7 @@ setInterval(setUserOnline, 30000);
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
+  setupHorizontalFade("mural-suggestions");
 }
 
 // ================= VIEWS =================
@@ -508,6 +510,7 @@ async function renderUsers() {
   if (!container) return;
 
   await loadRealUsers();
+  const matchedUserIds = await getMatchedUserIds();
 
   if (countEl) {
     const total = realUsers.length;
@@ -518,6 +521,7 @@ async function renderUsers() {
     <div class="people-grid">
       ${realUsers.map(user => {
         const alreadyLiked = (currentUser.likesSent || []).includes(user.id);
+        const alreadyMatched = matchedUserIds.has(user.id);
 
         return `
           <div class="people-card fade-in">
@@ -536,32 +540,42 @@ async function renderUsers() {
               <h3>${user.name}</h3>
               <p class="people-bio">"${user.bio || ""}"</p>
 
-              <div class="people-actions">
-                ${
-                  currentUser.mode === "view"
-                    ? `
-                      <button class="chopp-btn disabled-btn" disabled>
-                        <span class="beer-icon-wrap">
-                          <span class="beer-bg"></span>
-                          <i data-lucide="beer" class="beer-icon"></i>
-                        </span>
-                      </button>
-                    `
-                    : `
-                      <button 
-                        class="chopp-btn ${alreadyLiked ? "active" : ""}" 
-                        onclick="toggleChoppLike('${user.id}')"
-                        aria-label="Dar chopp para ${user.name}"
-                        title="Dar chopp"
-                      >
-                        <span class="beer-icon-wrap">
-                          <span class="beer-bg"></span>
-                          <i data-lucide="beer" class="beer-icon"></i>
-                        </span>
-                      </button>
-                    `
-                }
-              </div>
+<div class="people-actions">
+  ${
+    currentUser.mode === "view"
+      ? `
+        <button class="chopp-btn disabled-btn" disabled>
+          <span class="beer-icon-wrap">
+            <span class="beer-bg"></span>
+            <i data-lucide="beer" class="beer-icon"></i>
+          </span>
+        </button>
+      `
+      : `
+        <button 
+          class="chopp-btn ${alreadyLiked ? "active" : ""}" 
+          onclick="toggleChoppLike('${user.id}')"
+          aria-label="Dar chopp para ${user.name}"
+          title="Dar chopp"
+        >
+          <span class="beer-icon-wrap">
+            <span class="beer-bg"></span>
+            <i data-lucide="beer" class="beer-icon"></i>
+          </span>
+        </button>
+      `
+  }
+
+  ${
+    alreadyMatched
+      ? `
+        <button class="user-chat-btn" onclick="openChatWithUser('${user.id}')" title="Abrir chat">
+          <i data-lucide="message-circle"></i>
+        </button>
+      `
+      : ""
+  }
+</div>
             </div>
           </div>
         `;
@@ -982,33 +996,36 @@ function setMode(mode) {
   }
 
   if (mode === "active") {
-    if (card) {
-      card.classList.add("active-green");
-    }
+    if (card) card.classList.add("active-green");
+
     if (title) {
       title.textContent = "Novas conexões";
       title.style.color = "var(--green)";
     }
+
     if (desc) desc.textContent = "Interaja, curta, troque mensagens.";
-    if (dot) {
-      dot.classList.add("dot-active");
-    }
+
+    if (dot) dot.classList.add("dot-active");
   } else {
-    if (card) {
-      card.classList.add("active-yellow");
-    }
+    if (card) card.classList.add("active-yellow");
+
     if (title) {
       title.textContent = "Só observando";
       title.style.color = "var(--yellow)";
     }
+
     if (desc) desc.textContent = "Apenas visualizar perfis e mural.";
-    if (dot) {
-      dot.classList.add("dot-yellow");
-    }
+
+    if (dot) dot.classList.add("dot-yellow");
   }
 
-  renderUsers();
-  renderMural();
+  if (activeTab === 0) {
+    renderUsers();
+  }
+
+  if (activeTab === 2) {
+    renderMural();
+  }
 }
 
 function toggleMode() {
@@ -1418,6 +1435,136 @@ async function sendReply(postId) {
   input.value = "";
   await renderMural();
 }
+
+function updateHorizontalFade(scrollerId) {
+  const scroller = document.getElementById(scrollerId);
+  if (!scroller) return;
+
+  const wrapper = scroller.closest(".scroll-fade-wrap");
+  if (!wrapper) return;
+
+  const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+  const currentScroll = scroller.scrollLeft;
+
+  wrapper.classList.toggle("has-left-fade", currentScroll > 2);
+  wrapper.classList.toggle("has-right-fade", currentScroll < maxScroll - 2);
+}
+
+function setupHorizontalFade(scrollerId) {
+  const scroller = document.getElementById(scrollerId);
+  if (!scroller) return;
+
+  updateHorizontalFade(scrollerId);
+
+  scroller.addEventListener("scroll", () => {
+    updateHorizontalFade(scrollerId);
+  });
+
+  window.addEventListener("resize", () => {
+    updateHorizontalFade(scrollerId);
+  });
+}
+
+// ================= NOTIFICAÇÕES ==================
+
+let notifiedMatchIds = new Set(
+  JSON.parse(localStorage.getItem("hubbeNotifiedMatches") || "[]")
+);
+
+function saveNotifiedMatchIds() {
+  localStorage.setItem(
+    "hubbeNotifiedMatches",
+    JSON.stringify([...notifiedMatchIds])
+  );
+}
+
+async function getUserNameById(userId) {
+  const found = realUsers.find(user => user.id === userId);
+  if (found) return found.name;
+
+  const { data } = await supabaseClient
+    .from("users")
+    .select("name")
+    .eq("id", userId)
+    .single();
+
+  return data?.name || "alguém";
+}
+
+function showBrindeNotification(otherName) {
+  const toast = document.createElement("div");
+  toast.className = "brinde-toast";
+  toast.innerHTML = `🥂 Você e <strong>${otherName}</strong> deram um brinde!`;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("show");
+  }, 50);
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+async function checkNewMatches(silent = false) {
+  if (!supabaseClient || !currentUser.id) return;
+
+  const { data: matches } = await supabaseClient
+    .from("matches")
+    .select("*")
+    .or(`user1.eq.${currentUser.id},user2.eq.${currentUser.id}`);
+
+  for (const match of matches || []) {
+    if (notifiedMatchIds.has(match.id)) continue;
+
+    const otherUserId = match.user1 === currentUser.id ? match.user2 : match.user1;
+
+    if (!silent) {
+      const otherName = await getUserNameById(otherUserId);
+      showBrindeNotification(otherName);
+      renderChats();
+      renderUsers();
+    }
+
+    notifiedMatchIds.add(match.id);
+  }
+
+  saveNotifiedMatchIds();
+}
+
+async function getMatchedUserIds() {
+  const matchedIds = new Set();
+
+  if (!supabaseClient || !currentUser.id) return matchedIds;
+
+  const { data: matches } = await supabaseClient
+    .from("matches")
+    .select("*")
+    .or(`user1.eq.${currentUser.id},user2.eq.${currentUser.id}`);
+
+  (matches || []).forEach(match => {
+    matchedIds.add(match.user1 === currentUser.id ? match.user2 : match.user1);
+  });
+
+  return matchedIds;
+}
+
+async function openChatWithUser(userId) {
+  await loadRealMatches();
+
+  const match = realMatches.find(m =>
+    m.user1 === userId || m.user2 === userId
+  );
+
+  if (!match) return;
+
+  currentUser.activeChatId = match.id;
+  saveData();
+  setActiveTab(1);
+}
+
 // ================= AUX =================
 function goBack() {
   setActiveTab(0);
