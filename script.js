@@ -504,14 +504,23 @@ async function loadRealUsers() {
 }
 
 async function renderUsers() {
-  const container = document.getElementById("users-container");
+  const container = document.getElementById("users-list");
+  const countEl = document.getElementById("discover-count");
+
   if (!container) return;
 
   await loadRealUsers();
 
   const matchedUserIds = await getMatchedUserIds();
 
+  // remove você da lista
   const usersToShow = realUsers.filter(user => user.id !== currentUser.id);
+
+  // contador de pessoas
+  if (countEl) {
+    const total = usersToShow.length;
+    countEl.textContent = total === 1 ? "1 pessoa" : `${total} pessoas`;
+  }
 
   container.innerHTML = `
     <div class="people-grid">
@@ -524,7 +533,17 @@ async function renderUsers() {
           <div class="people-card">
 
             <div class="people-photo">
-              <img src="${user.photo || ""}" alt="${user.name}">
+              ${
+                user.photo
+                  ? `<img class="people-img" src="${user.photo}" alt="${user.name}">`
+                  : `<div class="people-img">👤</div>`
+              }
+
+              ${
+                user.is_online
+                  ? `<span class="online-dot dot-green"></span>`
+                  : ""
+              }
             </div>
 
             <div class="people-content">
@@ -538,7 +557,7 @@ async function renderUsers() {
                     ? `
                       <button 
                         class="user-chat-btn" 
-                        onclick="openChatWithUser('${user.id}')" 
+                        onclick="openChatWithUser('${user.id}')"
                         title="Abrir chat"
                       >
                         <i data-lucide="message-circle"></i>
@@ -561,7 +580,6 @@ async function renderUsers() {
                       <button 
                         class="chopp-btn ${alreadyLiked ? "active" : ""}" 
                         onclick="toggleChoppLike('${user.id}')"
-                        aria-label="Dar chopp para ${user.name}"
                         title="Dar chopp"
                       >
                         <span class="beer-icon-wrap">
@@ -573,7 +591,6 @@ async function renderUsers() {
                 }
 
               </div>
-
             </div>
           </div>
         `;
@@ -581,6 +598,7 @@ async function renderUsers() {
     </div>
   `;
 
+  // recria os ícones
   if (window.lucide) {
     lucide.createIcons();
   }
@@ -1550,20 +1568,6 @@ async function getMatchedUserIds() {
 }
 
 async function openChatWithUser(userId) {
-  await loadRealMatches();
-
-  const match = realMatches.find(m =>
-    m.user1 === userId || m.user2 === userId
-  );
-
-  if (!match) return;
-
-  currentUser.activeChatId = match.id;
-  saveData();
-  setActiveTab(1);
-}
-
-async function openChatWithUser(userId) {
   if (!supabaseClient || !currentUser.id) return;
 
   await loadRealMatches();
@@ -1579,7 +1583,6 @@ async function openChatWithUser(userId) {
 
   currentUser.activeChatId = match.id;
   saveData();
-
   setActiveTab(1);
 }
 
