@@ -512,11 +512,8 @@ async function renderUsers() {
   await loadRealUsers();
 
   const matchedUserIds = await getMatchedUserIds();
-
-  // remove você da lista
   const usersToShow = realUsers.filter(user => user.id !== currentUser.id);
 
-  // contador de pessoas
   if (countEl) {
     const total = usersToShow.length;
     countEl.textContent = total === 1 ? "1 pessoa" : `${total} pessoas`;
@@ -525,25 +522,20 @@ async function renderUsers() {
   container.innerHTML = `
     <div class="people-grid">
       ${usersToShow.map(user => {
-
         const alreadyLiked = (currentUser.likesSent || []).includes(user.id);
         const alreadyMatched = matchedUserIds.has(user.id);
 
         return `
-          <div class="people-card">
+          <div class="people-card fade-in">
 
             <div class="people-photo">
               ${
                 user.photo
-                  ? `<img class="people-img" src="${user.photo}" alt="${user.name}">`
+                  ? `<img class="people-photo-img" src="${user.photo}" alt="${user.name}">`
                   : `<div class="people-img">👤</div>`
               }
 
-              ${
-                user.is_online
-                  ? `<span class="online-dot dot-green"></span>`
-                  : ""
-              }
+              <span class="online-dot ${user.mode === "active" ? "dot-green" : "dot-yellow"}"></span>
             </div>
 
             <div class="people-content">
@@ -551,59 +543,58 @@ async function renderUsers() {
               <p class="people-bio">"${user.bio || ""}"</p>
 
               <div class="people-actions">
+                <div class="left-actions">
+                  ${
+                    alreadyMatched
+                      ? `
+                        <button 
+                          class="user-chat-btn" 
+                          onclick="openChatWithUser('${user.id}')"
+                          title="Abrir chat"
+                        >
+                          <i data-lucide="message-circle"></i>
+                        </button>
+                      `
+                      : ""
+                  }
+                </div>
 
-                ${
-                  alreadyMatched
-                    ? `
-                      <button 
-                        class="user-chat-btn" 
-                        onclick="openChatWithUser('${user.id}')"
-                        title="Abrir chat"
-                      >
-                        <i data-lucide="message-circle"></i>
-                      </button>
-                    `
-                    : ""
-                }
-
-                ${
-                  currentUser.mode === "view"
-                    ? `
-                      <button class="chopp-btn disabled-btn" disabled>
-                        <span class="beer-icon-wrap">
-                          <span class="beer-bg"></span>
-                          <i data-lucide="beer" class="beer-icon"></i>
-                        </span>
-                      </button>
-                    `
-                    : `
-                      <button 
-                        class="chopp-btn ${alreadyLiked ? "active" : ""}" 
-                        onclick="toggleChoppLike('${user.id}')"
-                        title="Dar chopp"
-                      >
-                        <span class="beer-icon-wrap">
-                          <span class="beer-bg"></span>
-                          <i data-lucide="beer" class="beer-icon"></i>
-                        </span>
-                      </button>
-                    `
-                }
-
+                <div class="right-actions">
+                  ${
+                    currentUser.mode === "view"
+                      ? `
+                        <button class="chopp-btn disabled-btn" disabled title="Só observando">
+                          <span class="beer-icon-wrap">
+                            <span class="beer-bg"></span>
+                            <i data-lucide="beer" class="beer-icon"></i>
+                          </span>
+                        </button>
+                      `
+                      : `
+                        <button 
+                          class="chopp-btn ${alreadyLiked ? "active" : ""}" 
+                          onclick="toggleChoppLike('${user.id}')"
+                          title="Dar chopp"
+                        >
+                          <span class="beer-icon-wrap">
+                            <span class="beer-bg"></span>
+                            <i data-lucide="beer" class="beer-icon"></i>
+                          </span>
+                        </button>
+                      `
+                  }
+                </div>
               </div>
             </div>
+
           </div>
         `;
       }).join("")}
     </div>
   `;
 
-  // recria os ícones
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  if (window.lucide) lucide.createIcons();
 }
-
 async function toggleChoppLike(toUserId) {
   if (currentUser.mode === "view") {
     alert("No modo Só observando você não pode interagir.");
