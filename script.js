@@ -535,7 +535,7 @@ async function renderUsers() {
             <div class="people-photo">
               ${
                 user.photo
-                  ? `<img class="people-photo-img" src="${user.photo}" alt="${user.name}">`
+                  ? `<img class="people-img" src="${user.photo}" alt="${user.name}">`
                   : `<div class="people-img">👤</div>`
               }
 
