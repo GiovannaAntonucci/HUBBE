@@ -1633,3 +1633,17 @@ button i {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+.mural-post,
+.reply-item {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.mural-post-text,
+.reply-text {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
