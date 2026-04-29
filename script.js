@@ -128,10 +128,16 @@ function init() {
 // ================= VIEWS =================
 function setActiveTab(index) {
   activeTab = index;
+
+  if (index === 1) hideChatBadge();
+  if (index === 2) hideMuralBadge();
+
   document.querySelectorAll(".nav-item").forEach((item, i) => {
     item.classList.toggle("active", i === index);
   });
+
   showView(navTabs[index]);
+
   if (index === 3) updateProfile();
 }
 function showView(viewId) {
@@ -824,6 +830,16 @@ async function sendTypedChatMessage() {
     text
   });
 
+  const otherUserId = match.user1 === currentUser.id ? match.user2 : match.user1;
+
+  await createNotification(
+    otherUserId,
+    currentUser.id,
+    "message",
+    "Nova mensagem 💬",
+    `${currentUser.name} te enviou uma mensagem`
+  );
+
   input.value = "";
   await renderActiveChat();
 }
@@ -1340,6 +1356,21 @@ async function sendReply(postId) {
   });
 
   input.value = "";
+  const { data: post } = await supabaseClient
+  .from("mural_posts")
+  .select("author_id, author_name")
+  .eq("id", postId)
+  .single();
+
+if (post && post.author_id !== currentUser.id) {
+  await createNotification(
+    post.author_id,
+    currentUser.id,
+    "mural_reply",
+    "Nova resposta no mural 💬",
+    `${currentUser.name} respondeu sua publicação no mural`
+  );
+}
   await renderMural();
 }
 
@@ -1438,6 +1469,14 @@ function listenToMyNotifications() {
 
         showAppNotification(notification.message);
         showBrowserNotification(notification.title, notification.message);
+        
+        if (notification.type === "brinde" || notification.type === "message") {
+          if (activeTab !== 1) showChatBadge();
+        }
+        
+        if (notification.type === "mural_reply") {
+          if (activeTab !== 2) showMuralBadge();
+        }
       }
     )
     .subscribe();
@@ -1577,6 +1616,23 @@ function listenUsersRealtime() {
     )
     .subscribe();
 }
+
+function showChatBadge() {
+  document.getElementById("chat-badge")?.classList.remove("hidden");
+}
+
+function hideChatBadge() {
+  document.getElementById("chat-badge")?.classList.add("hidden");
+}
+
+function showMuralBadge() {
+  document.getElementById("mural-badge")?.classList.remove("hidden");
+}
+
+function hideMuralBadge() {
+  document.getElementById("mural-badge")?.classList.add("hidden");
+}
+
 // ================= AUX =================
 function goBack() {
   setActiveTab(0);
