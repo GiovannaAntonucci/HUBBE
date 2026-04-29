@@ -100,8 +100,11 @@ function init() {
   ensureCurrentUserId();
   requestBrowserNotificationPermission();
   listenToMyNotifications();
+  listenUsersRealtime();
   setUserOnline();
-setInterval(setUserOnline, 30000);
+
+  setInterval(setUserOnline, 30000);
+
   setupOnboarding();
   const navItems = document.querySelectorAll(".nav-item");
   navItems.forEach((item, index) => {
