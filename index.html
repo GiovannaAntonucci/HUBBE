@@ -127,10 +127,6 @@
           <div class="chat-room-subtitle">Brindou com você!🍻</div>
         </div>
       </div>
-
-      <button class="chat-room-heart-btn" type="button">
-        <i data-lucide="heart"></i>
-      </button>
     </div>
 
     <div id="chat-messages" class="chat-messages"></div>
@@ -295,19 +291,22 @@
       <span>Pessoas</span>
       <div class="active-dot"></div>
     </div>
-
     <div class="nav-item" data-tab="1">
-      <div class="nav-icon"><i data-lucide="message-circle"></i></div>
+      <div class="nav-icon">
+        <i data-lucide="message-circle"></i>
+        <span id="chat-badge" class="nav-badge hidden"></span>
+      </div>
       <span>Chats</span>
       <div class="active-dot"></div>
     </div>
-
     <div class="nav-item" data-tab="2">
-      <div class="nav-icon"><i data-lucide="clipboard"></i></div>
+      <div class="nav-icon">
+        <i data-lucide="clipboard"></i>
+        <span id="mural-badge" class="nav-badge hidden"></span>
+      </div>
       <span>Mural</span>
       <div class="active-dot"></div>
     </div>
-
     <div class="nav-item" data-tab="3">
       <div class="nav-icon"><i data-lucide="user"></i></div>
       <span>Perfil</span>
