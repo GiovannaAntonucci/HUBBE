@@ -1647,3 +1647,18 @@ button i {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.nav-icon {
+  position: relative;
+}
+
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  width: 9px;
+  height: 9px;
+  background: #ff2d2d;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 45, 45, 0.9);
+  border: 1px solid #050505;
+}
