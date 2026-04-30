@@ -314,10 +314,9 @@ function captureSelfie() {
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   selfieImage = canvas.toDataURL("image/jpeg", 0.9);
   preview.src = selfieImage;
+  validateSelfieAutomatically();
   preview.classList.remove("hidden");
   video.classList.add("hidden");
-  btn.classList.add("hidden");
-  if (actions) actions.classList.remove("hidden");
 }
 function retakeSelfie() {
   const video = document.getElementById("camera-video");
@@ -332,6 +331,45 @@ function retakeSelfie() {
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
+}
+
+async function validateSelfieAutomatically() {
+  const btn = document.getElementById("selfie-btn");
+
+  if (!selfieImage) return;
+
+  // mostra loading no botão
+  btn.disabled = true;
+  btn.textContent = "Verificando rosto...";
+
+  const faceDetected = await hasFace(selfieImage);
+
+  if (!faceDetected) {
+    alert("Nenhum rosto detectado. Tente novamente.");
+
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="camera"></i> Tirar foto';
+
+    if (typeof lucide !== "undefined") lucide.createIcons();
+
+    return;
+  }
+
+  // sucesso
+  selfieTaken = true;
+  localStorage.setItem("hubbe_selfie", selfieImage);
+
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="camera"></i> Tirar outra';
+
+  if (typeof lucide !== "undefined") lucide.createIcons();
+
+  validateForm();
 }
 
 async function confirmSelfie() {
@@ -1327,11 +1365,10 @@ async function startEditCamera() {
   saveBtn.classList.add("hidden");
 }
 
-function captureEditPhoto() {
+async function captureEditPhoto() {
   const video = document.getElementById("edit-camera-video");
   const canvas = document.getElementById("edit-camera-canvas");
   const preview = document.getElementById("edit-selfie-preview");
-  const saveBtn = document.getElementById("save-edit-photo-btn");
   const takeBtn = document.getElementById("edit-take-photo-btn");
 
   if (!video.videoWidth || !video.videoHeight) {
@@ -1346,11 +1383,10 @@ function captureEditPhoto() {
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-// salva igual ao preview da câmera
-ctx.translate(canvas.width, 0);
-ctx.scale(-1, 1);
-ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   editSelfieImage = canvas.toDataURL("image/jpeg", 0.9);
 
@@ -1358,16 +1394,40 @@ ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   preview.classList.remove("hidden");
   video.classList.add("hidden");
 
-  saveBtn.classList.remove("hidden");
-  takeBtn.textContent = "Tirar outra foto";
+  if (takeBtn) {
+    takeBtn.disabled = true;
+    takeBtn.textContent = "Verificando rosto...";
+  }
+
+  const faceDetected = await hasFace(editSelfieImage);
+
+  if (!faceDetected) {
+    alert("Nenhum rosto detectado. Tire uma selfie válida.");
+
+    editSelfieImage = "";
+    preview.classList.add("hidden");
+    video.classList.remove("hidden");
+
+    if (takeBtn) {
+      takeBtn.disabled = false;
+      takeBtn.textContent = "Tirar foto";
+    }
+
+    return;
+  }
 
   if (editCameraStream) {
     editCameraStream.getTracks().forEach(track => track.stop());
     editCameraStream = null;
   }
+
+  if (takeBtn) {
+    takeBtn.disabled = false;
+    takeBtn.textContent = "Tirar outra foto";
+  }
 }
 
-function confirmEditPhoto() {
+async function confirmEditPhoto() {
   if (!editSelfieImage) {
     alert("Tire uma foto antes de usar.");
     return;
@@ -1375,13 +1435,33 @@ function confirmEditPhoto() {
 
   const saveBtn = document.getElementById("save-edit-photo-btn");
 
-  saveBtn.textContent = "Foto selecionada";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Verificando rosto...";
+  }
+
+  const faceDetected = await hasFace(editSelfieImage);
+
+  if (!faceDetected) {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Usar essa foto";
+    }
+
+    alert("Nenhum rosto detectado. Tire uma selfie válida.");
+    editSelfieImage = "";
+    return;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Foto selecionada ✅";
+  }
 
   setTimeout(() => {
-    saveBtn.textContent = "Usar essa foto";
+    if (saveBtn) saveBtn.textContent = "Usar essa foto";
   }, 1200);
 }
-
 async function saveProfileEdit() {
   currentUser.name = document.getElementById("edit-name").value.trim();
   currentUser.age = parseInt(document.getElementById("edit-age").value);
