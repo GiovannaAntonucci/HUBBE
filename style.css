@@ -1679,3 +1679,63 @@ button i {
   box-shadow: 0 0 10px rgba(255, 31, 31, 0.9);
   z-index: 5;
 }
+/* ANIMAÇÃO GERAL DOS BOTÕES DO PERFIL */
+.edit-profile-btn,
+.logout-btn,
+.mode-card {
+  transition: 
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease,
+    color 0.25s ease;
+}
+
+/* BOTÃO EDITAR PERFIL - FUNDO PRETO */
+.edit-profile-btn {
+  background: #050505 !important;
+  color: var(--turquesa) !important;
+  border: 1.5px solid rgba(57, 208, 216, 0.75) !important;
+  box-shadow: none !important;
+}
+
+/* HOVER / TOQUE DO EDITAR PERFIL */
+.edit-profile-btn:hover,
+.edit-profile-btn:active {
+  background: rgba(57, 208, 216, 0.12) !important;
+  border-color: var(--turquesa) !important;
+  box-shadow: 0 0 18px rgba(57, 208, 216, 0.35) !important;
+  transform: translateY(-2px);
+}
+
+/* BOTÃO SAIR COM ANIMAÇÃO */
+.logout-btn:hover,
+.logout-btn:active {
+  background: rgba(255, 0, 0, 0.08);
+  box-shadow: 0 0 18px rgba(255, 0, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+/* DEIXAR BOTÃO DE MODO MAIS VISÍVEL */
+.mode-card {
+  background: #080808 !important;
+}
+
+/* MODO ATIVO MAIS ACESO */
+.mode-card.active-green {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 18px rgba(0, 255, 102, 0.32) !important;
+}
+
+/* MODO OBSERVANDO MAIS ACESO */
+.mode-card.active-yellow {
+  border-color: var(--yellow) !important;
+  box-shadow: 0 0 18px rgba(255, 212, 59, 0.35) !important;
+}
+
+/* HOVER / TOQUE DO MODO */
+.mode-card:hover,
+.mode-card:active {
+  transform: translateY(-2px);
+  filter: brightness(1.18);
+}
