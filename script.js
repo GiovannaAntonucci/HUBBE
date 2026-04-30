@@ -651,6 +651,7 @@ async function renderChats() {
   }
 
   listEl.innerHTML = matches.map(match => {
+    const user = match.otherUser;
     const hasUnread = unreadChatUsers.has(user.id);
     const preview = chatPreviewMap[user.id] || '"Novo brinde 🍻"';
 
