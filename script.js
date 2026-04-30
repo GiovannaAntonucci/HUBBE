@@ -76,8 +76,15 @@ const supabaseClient = window.supabase
   );
   
   function saveChatStatus() {
-    localStorage.setItem("hubbeUnreadChatUsers", JSON.stringify([...unreadChatUsers]));
-    localStorage.setItem("hubbeChatPreviewMap", JSON.stringify(chatPreviewMap));
+    localStorage.setItem(
+      "hubbeUnreadChatUsers",
+      JSON.stringify([...unreadChatUsers])
+    );
+  
+    localStorage.setItem(
+      "hubbeChatPreviewMap",
+      JSON.stringify(chatPreviewMap)
+    );
   }
   
   function markChatUnread(userId, previewText) {
@@ -126,8 +133,35 @@ const navTabs = [
   "profile-view"
 ];
 document.addEventListener("DOMContentLoaded", init);
+
+let faceModelReady = false;
+
+async function loadFaceDetection() {
+  try {
+    if (typeof faceapi === "undefined") {
+      console.error("face-api não carregou.");
+      faceModelReady = false;
+      return;
+    }
+
+    const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
+
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+
+    faceModelReady = true;
+    console.log("Detector de rosto carregado com sucesso.");
+  } catch (error) {
+    faceModelReady = false;
+    console.error("Erro ao carregar detector de rosto:", error);
+  }
+}
+
 // ================= INIT =================
-function init() {
+
+async function init() {
+  // 🔍 AGORA ESPERA carregar
+  await loadFaceDetection();
+
   loadData();
   ensureCurrentUserId();
   requestBrowserNotificationPermission();
@@ -138,25 +172,32 @@ function init() {
   setInterval(setUserOnline, 30000);
 
   setupOnboarding();
+
   const navItems = document.querySelectorAll(".nav-item");
   navItems.forEach((item, index) => {
     item.addEventListener("click", () => setActiveTab(index));
   });
+
   if (hasCompleteProfile()) {
     selfieTaken = true;
+
     if (!currentUser.mode) {
       showModeSelection();
     } else {
       const nav = document.getElementById("bottom-nav");
       if (nav) nav.classList.remove("hidden");
+
       setActiveTab(0);
     }
   }
+
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
+
   setupHorizontalFade("mural-suggestions");
 }
+
 // ================= VIEWS =================
 function setActiveTab(index) {
   activeTab = index;
@@ -292,27 +333,61 @@ function retakeSelfie() {
     lucide.createIcons();
   }
 }
-function confirmSelfie() {
+
+async function confirmSelfie() {
   const actions = document.getElementById("selfie-actions");
   const btn = document.getElementById("selfie-btn");
+  const confirmBtn = document.getElementById("confirm-selfie-btn");
+
   if (!selfieImage) {
     alert("Nenhuma selfie foi tirada.");
     return;
   }
+
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Verificando rosto...";
+  }
+
+  const faceDetected = await hasFace(selfieImage);
+
+  if (!faceDetected) {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Ficou boa";
+    }
+
+    alert("Nenhum rosto detectado. Tire uma selfie válida.");
+    return;
+  }
+
   selfieTaken = true;
   localStorage.setItem("hubbe_selfie", selfieImage);
+
   if (cameraStream) {
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
   }
+
   if (actions) actions.classList.add("hidden");
-  btn.classList.remove("hidden");
-  btn.innerHTML = '<i data-lucide="camera"></i> Nova Selfie';
+
+  if (btn) {
+    btn.classList.remove("hidden");
+    btn.innerHTML = '<i data-lucide="camera"></i> Nova Selfie';
+  }
+
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Ficou boa";
+  }
+
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
+
   validateForm();
 }
+
 function validateForm() {
   const name = document.getElementById("user-name")?.value.trim();
   const age = parseInt(document.getElementById("user-age")?.value);
@@ -1710,6 +1785,33 @@ function showMuralBadge() {
 
 function hideMuralBadge() {
   document.getElementById("mural-badge")?.classList.add("hidden");
+}
+
+async function hasFace(imageSrc) {
+  if (!faceModelReady || typeof faceapi === "undefined") {
+    alert("Detector de rosto ainda não carregou. Aguarde alguns segundos e tente novamente.");
+    return false;
+  }
+
+  const img = new Image();
+  img.src = imageSrc;
+
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+
+  const detection = await faceapi.detectSingleFace(
+    img,
+    new faceapi.TinyFaceDetectorOptions({
+      inputSize: 320,
+      scoreThreshold: 0.15
+    })
+  );
+
+  console.log("Resultado da detecção:", detection);
+
+  return !!detection;
 }
 
 // ================= AUX =================
