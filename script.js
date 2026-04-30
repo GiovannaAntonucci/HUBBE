@@ -642,18 +642,19 @@ async function renderChats() {
   if (!matches || matches.length === 0) {
     listEl.innerHTML = `
       <div class="chat-empty">
-        Nenhum chat liberado ainda. O chat só aparece quando o chopp é recíproco 🍻
+        Nenhum chat liberado ainda. O chat só aparece quando o brinde é recíproco 🍻
       </div>
     `;
-
     if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 
   listEl.innerHTML = matches.map(match => {
     const user = match.otherUser;
+    if (!user) return "";
+
     const hasUnread = unreadChatUsers.has(user.id);
-    const preview = chatPreviewMap[user.id] || '"Novo brinde 🍻"';
+    const preview = chatPreviewMap[user.id] || "Novo brinde 🍻";
 
     return `
       <div class="chat-card" onclick="openChat('${match.id}')">
