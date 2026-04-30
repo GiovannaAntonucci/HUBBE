@@ -66,6 +66,38 @@ const supabaseClient = window.supabase
   let realUsers = [];
   let realMatches = [];
   let activeMatch = null;
+
+  let unreadChatUsers = new Set(
+    JSON.parse(localStorage.getItem("hubbeUnreadChatUsers") || "[]")
+  );
+  
+  let chatPreviewMap = JSON.parse(
+    localStorage.getItem("hubbeChatPreviewMap") || "{}"
+  );
+  
+  function saveChatStatus() {
+    localStorage.setItem("hubbeUnreadChatUsers", JSON.stringify([...unreadChatUsers]));
+    localStorage.setItem("hubbeChatPreviewMap", JSON.stringify(chatPreviewMap));
+  }
+  
+  function markChatUnread(userId, previewText) {
+    unreadChatUsers.add(userId);
+    chatPreviewMap[userId] = previewText;
+    saveChatStatus();
+    showChatBadge();
+    renderChats();
+  }
+  
+  function clearChatUnread(userId) {
+    unreadChatUsers.delete(userId);
+  
+    if (chatPreviewMap[userId] === '"Novo brinde 🍻"') {
+      chatPreviewMap[userId] = "Conversa liberada";
+    }
+  
+    saveChatStatus();
+  }
+
   function ensureCurrentUserId() {
     let savedId = localStorage.getItem("hubbeUserId");
     if (!savedId) {
@@ -619,7 +651,8 @@ async function renderChats() {
   }
 
   listEl.innerHTML = matches.map(match => {
-    const user = match.otherUser;
+    const hasUnread = unreadChatUsers.has(user.id);
+    const preview = chatPreviewMap[user.id] || '"Novo brinde 🍻"';
 
     return `
       <div class="chat-card" onclick="openChat('${match.id}')">
@@ -634,10 +667,11 @@ async function renderChats() {
 
         <div class="chat-card-main">
           <div class="chat-card-name">${user.name}</div>
-          <div class="chat-card-preview">"Novo brinde 🍻"</div>
+          <div class="chat-card-preview">${preview}</div>
         </div>
 
         <div class="chat-card-icon">
+          ${hasUnread ? `<span class="chat-card-badge"></span>` : ""}
           <i data-lucide="message-circle"></i>
         </div>
       </div>
@@ -648,8 +682,18 @@ async function renderChats() {
 }
 
 function openChat(matchId) {
+  const match = realMatches.find(m => m.id === matchId);
+
+  if (match) {
+    const otherUserId =
+      match.user1 === currentUser.id ? match.user2 : match.user1;
+
+    clearChatUnread(otherUserId);
+  }
+
   currentUser.activeChatId = matchId;
   saveData();
+  hideChatBadge();
   renderChats();
 }
 
@@ -824,26 +868,36 @@ async function sendTypedChatMessage() {
 
   if (!text || remaining <= 0) return;
 
+  // 🔹 envia mensagem
   await supabaseClient.from("messages").insert({
     match_id: match.id,
     sender_id: currentUser.id,
     text
   });
 
-  const otherUserId = match.user1 === currentUser.id ? match.user2 : match.user1;
+  // 🔹 identifica outro usuário
+  const otherUserId =
+    match.user1 === currentUser.id ? match.user2 : match.user1;
 
+  // 🔹 atualiza preview do chat
+  chatPreviewMap[otherUserId] = text;
+  saveChatStatus();
+
+  // 🔹 envia notificação para o outro usuário
   await createNotification(
     otherUserId,
     currentUser.id,
     "message",
     "Nova mensagem 💬",
-    `${currentUser.name} te enviou uma mensagem`
+    `${currentUser.name}: ${text}`
   );
 
+  // 🔹 limpa input
   input.value = "";
+
+  // 🔹 atualiza chat aberto
   await renderActiveChat();
 }
-
 // ================= PROFILE =================
 async function getReceivedLikesCount() {
   if (!supabaseClient || !currentUser.id) return 0;
@@ -1255,7 +1309,10 @@ async function saveProfileEdit() {
   currentUser.name = document.getElementById("edit-name").value.trim();
   currentUser.age = parseInt(document.getElementById("edit-age").value);
   currentUser.bio = document.getElementById("edit-bio").value.trim();
-  currentUser.selfie = editSelfieImage;
+
+  if (editSelfieImage) {
+    currentUser.selfie = editSelfieImage;
+  }
 
   saveData();
 
@@ -1269,10 +1326,26 @@ async function saveProfileEdit() {
         photo: currentUser.selfie
       })
       .eq("id", currentUser.id);
+
+    await supabaseClient
+      .from("mural_posts")
+      .update({
+        author_name: currentUser.name,
+        author_photo: currentUser.selfie
+      })
+      .eq("author_id", currentUser.id);
+
+    await supabaseClient
+      .from("mural_replies")
+      .update({
+        author_name: currentUser.name
+      })
+      .eq("author_id", currentUser.id);
   }
 
   updateProfile();
   renderUsers();
+  renderMural();
   closeEditProfile();
 }
 
@@ -1470,8 +1543,12 @@ function listenToMyNotifications() {
         showAppNotification(notification.message);
         showBrowserNotification(notification.title, notification.message);
         
-        if (notification.type === "brinde" || notification.type === "message") {
-          if (activeTab !== 1) showChatBadge();
+        if (notification.type === "brinde") {
+          markChatUnread(notification.from_user_id, '"Novo brinde 🍻"');
+        }
+        
+        if (notification.type === "message") {
+          markChatUnread(notification.from_user_id, notification.message);
         }
         
         if (notification.type === "mural_reply") {
