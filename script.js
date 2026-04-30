@@ -1352,7 +1352,6 @@ async function handleEditPhotoButton() {
 async function startEditCamera() {
   const video = document.getElementById("edit-camera-video");
   const preview = document.getElementById("edit-selfie-preview");
-  const saveBtn = document.getElementById("save-edit-photo-btn");
 
   editCameraStream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "user" }
@@ -1362,7 +1361,6 @@ async function startEditCamera() {
 
   preview.classList.add("hidden");
   video.classList.remove("hidden");
-  saveBtn.classList.add("hidden");
 }
 
 async function captureEditPhoto() {
@@ -1546,7 +1544,6 @@ function openEditProfile() {
 
   const preview = document.getElementById("edit-selfie-preview");
   const video = document.getElementById("edit-camera-video");
-  const saveBtn = document.getElementById("save-edit-photo-btn");
   const takeBtn = document.getElementById("edit-take-photo-btn");
 
   if (preview) {
@@ -1555,7 +1552,6 @@ function openEditProfile() {
   }
 
   if (video) video.classList.add("hidden");
-  if (saveBtn) saveBtn.classList.add("hidden");
   if (takeBtn) takeBtn.textContent = "Tirar outra foto";
 
   panel.classList.remove("hidden");
