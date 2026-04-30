@@ -1662,3 +1662,20 @@ button i {
   box-shadow: 0 0 8px rgba(255, 45, 45, 0.9);
   border: 1px solid #050505;
 }
+
+.chat-card-icon {
+  position: relative;
+}
+
+.chat-card-badge {
+  position: absolute;
+  top: -6px;
+  right: -7px;
+  width: 13px;
+  height: 13px;
+  background: #ff1f1f;
+  border: 2px solid #050505;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 31, 31, 0.9);
+  z-index: 5;
+}
