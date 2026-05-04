@@ -1,3 +1,6 @@
+/* =========================================================
+   00. VARIÁVEIS GLOBAIS
+========================================================= */
 :root {
   --bg: #050505;
   --surface: rgba(20, 20, 20, 0.72);
@@ -27,7 +30,10 @@
   --max-width: 28rem;
 }
 
-/* RESET */
+/* =========================================================
+   01. RESET / BASE
+========================================================= */
+
 *,
 *::before,
 *::after {
@@ -46,7 +52,11 @@ body {
   line-height: 1.5;
 }
 
-/* HELPERS */
+
+/* =========================================================
+   02. CLASSES AUXILIARES
+========================================================= */
+
 .hidden {
   display: none !important;
 }
@@ -82,7 +92,11 @@ body {
   gap: 1rem;
 }
 
-/* ONBOARDING */
+
+/* =========================================================
+   03. ONBOARDING / TELA INICIAL
+========================================================= */
+
 .onboarding {
   min-height: 100vh;
   max-width: var(--max-width);
@@ -103,7 +117,11 @@ body {
   color: transparent;
 }
 
-/* CAMERA */
+
+/* =========================================================
+   04. CÂMERA / SELFIE
+========================================================= */
+
 .camera-card {
   width: 240px;
   height: 240px;
@@ -156,7 +174,11 @@ body {
   display: none !important;
 }
 
-/* INPUTS */
+
+/* =========================================================
+   05. INPUTS / CAMPOS
+========================================================= */
+
 .input-group {
   width: 100%;
   max-width: 320px;
@@ -192,7 +214,11 @@ body {
   font-weight: 600;
 }
 
-/* BUTTONS */
+
+/* =========================================================
+   06. BOTÕES GERAIS
+========================================================= */
+
 button {
   border: none;
   cursor: pointer;
@@ -222,7 +248,11 @@ button {
   box-shadow: none;
 }
 
-/* NAVBAR */
+
+/* =========================================================
+   07. MENU INFERIOR / NAVBAR
+========================================================= */
+
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -300,7 +330,11 @@ button {
   opacity: 1;
 }
 
-/* PROFILE */
+
+/* =========================================================
+   08. PERFIL / CARD / MODO
+========================================================= */
+
 .profile-title {
   font-size: 32px;
   font-weight: 700;
@@ -383,6 +417,7 @@ button {
 .logout-btn {
   width: 100%;
   margin-top: 18px;
+  margin-bottom: 20px;
   padding: 16px;
   border: 1px solid red;
   background: transparent;
@@ -391,7 +426,11 @@ button {
   font-weight: 700;
 }
 
-/* INTRO */
+
+/* =========================================================
+   09. INTRO / SPLASH SCREEN
+========================================================= */
+
 .intro-screen {
   position: fixed;
   inset: 0;
@@ -410,7 +449,11 @@ button {
   display: none;
 }
 
-/* PEOPLE GRID */
+
+/* =========================================================
+   10. PESSOAS / CARDS / GRID
+========================================================= */
+
 .people-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -499,19 +542,22 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.nav-icon i {
-  width: 22px;
-  height: 22px;
-}
 
-/* REGRA GLOBAL DOS ÍCONES EM BOTÃO */
+/* =========================================================
+   11. ÍCONES GERAIS
+========================================================= */
+
 button i {
   width: 18px;
   height: 18px;
   margin-right: 6px;
 }
 
-/* MURAL */
+
+/* =========================================================
+   12. MURAL / POSTS / RESPOSTAS
+========================================================= */
+
 .mural-title {
   font-size: 28px;
   font-weight: 700;
@@ -688,11 +734,11 @@ button i {
   padding-bottom: 120px;
 }
 
-.logout-btn {
-  margin-bottom: 20px;
-}
 
-/* SELFIE ACTIONS */
+/* =========================================================
+   13. AÇÕES DA SELFIE
+========================================================= */
+
 .selfie-actions {
   display: flex;
   gap: 10px;
@@ -713,7 +759,11 @@ button i {
   background: linear-gradient(135deg, var(--turquesa), var(--turquesa-escuro));
   color: #021313;
 }
-/* TELA DE ESCOLHA DE MODO */
+
+/* =========================================================
+   14. TELA DE ESCOLHA DE MODO
+========================================================= */
+
 .mode-selection-screen {
   min-height: 100vh;
   max-width: var(--max-width);
@@ -722,20 +772,6 @@ button i {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.mode-selection-card {
-  width: 100%;
-  max-width: 380px;
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(12, 12, 12, 0.72);
-  border-radius: 28px;
-  padding: 26px;
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.55),
-    inset 0 0 28px rgba(255, 255, 255, 0.025);
 }
 .mode-selection-title {
   margin: 0 0 10px;
@@ -812,16 +848,6 @@ button i {
   transition: 0.2s ease;
 }
 
-.chopp-btn {
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .chopp-btn:hover .beer-svg {
   transform: scale(1.08);
 }
@@ -833,7 +859,10 @@ button i {
   border: none;
 }
 
-/* BOTÃO CHOPP / LIKE */
+
+/* =========================================================
+   15. BOTÃO CHOPP / LIKE
+========================================================= */
 .people-actions {
   display: flex;
   align-items: center;
@@ -901,7 +930,10 @@ button i {
   transform: scale(1.08);
   transition: transform 0.2s ease;
 }
-/* TOPO DA TELA DE PESSOAS */
+
+/* =========================================================
+   16. TOPO DA TELA DE PESSOAS
+========================================================= */
 .discover-header {
   display: flex;
   align-items: center;
@@ -942,7 +974,10 @@ button i {
   white-space: nowrap;
 }
 
-/* ================= CHAT NOVO ================= */
+
+/* =========================================================
+   17. CHAT / LISTA / CONVERSA
+========================================================= */
 
 .chat-list-header {
   display: flex;
@@ -1340,7 +1375,8 @@ button i {
   max-width: 320px;
 }
 
-/* BOTÃO AZUL (principal) */
+
+/* ===== BOTÃO AZUL (principal) ===== */
 .edit-btn-primary {
   flex: 1;
   padding: 14px;
@@ -1351,7 +1387,8 @@ button i {
   box-shadow: var(--shadow-neon);
 }
 
-/* BOTÃO SECUNDÁRIO (borda) */
+
+/* ===== BOTÃO SECUNDÁRIO (borda) ===== */
 .edit-btn-secondary {
   flex: 1;
   padding: 14px;
@@ -1368,16 +1405,6 @@ button i {
 .edit-btn-primary:hover {
   transform: scale(1.03);
 }
-/* ===== MENSAGENS RÁPIDAS (CARROSSEL) ===== */
-.quick-messages-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  white-space: nowrap;
-  padding-bottom: 6px;
-
-  scrollbar-width: none;
-}
 
 .quick-messages-row::-webkit-scrollbar {
   display: none;
@@ -1393,7 +1420,10 @@ button i {
   font-size: 13px;
   font-weight: 600;
 }
-/* ===== SCROLL HORIZONTAL ===== */
+
+/* =========================================================
+   18. SCROLL HORIZONTAL / FADES
+========================================================= */
 .quick-messages-row {
   display: flex;
   gap: 10px;
@@ -1655,7 +1685,9 @@ button i {
   box-shadow: 0 0 10px rgba(255, 31, 31, 0.9);
   z-index: 5;
 }
-/* ANIMAÇÃO GERAL DOS BOTÕES DO PERFIL */
+/* =========================================================
+   19. ANIMAÇÕES DOS BOTÕES DO PERFIL
+========================================================= */
 .edit-profile-btn,
 .logout-btn,
 .mode-card {
@@ -1708,7 +1740,9 @@ button i {
   transform: translateY(-2px);
   filter: brightness(1.18);
 }
-/* LOGO NA PRIMEIRA TELA */
+/* =========================================================
+   20. LOGOS / ANIMAÇÕES DE ENTRADA
+========================================================= */
 .onboarding-logo {
   width: 100%;
   display: flex;
@@ -1736,19 +1770,9 @@ button i {
     transform: translateY(0) scale(1);
   }
 }
-/* LOGO NA TELA DE ESCOLHA DE MODO */
-.mode-logo {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 18px;
-}
-
-.mode-logo img {
-  width: 70px;
-  height: auto;
-}
-/* CORREÇÃO FORÇADA DA TELA DE ESCOLHA DE MODO */
+/* =========================================================
+   21. AJUSTES FINAIS DA TELA DE ESCOLHA DE MODO
+========================================================= */
 .mode-selection-card {
   display: flex !important;
   flex-direction: column !important;
