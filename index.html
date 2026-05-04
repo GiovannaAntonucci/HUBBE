@@ -12,7 +12,11 @@
             <div id="app" class="has-nav">
 <!-- ONBOARDING -->
             <div id="landing-view" class="onboarding">
-                <h1 class="onboarding-title">HUBBE</h1>
+              <div class="onboarding-logo">
+                <img src="/:imagem/Logo.png" alt="Logo HUBBE">
+              </div>
+              
+              <h1 class="onboarding-title">HUBBE</h1>
             <div class="camera-card" id="camera-card">
             <div class="camera-placeholder">
                 <i data-lucide="camera"></i>
@@ -69,22 +73,32 @@
                 </button>
             </div>
 <!-- ESCOLHA DE MODO -->
-            <div id="mode-selection-view" class="mode-selection-screen hidden">
-            <div class="mode-selection-card">
-              <h2 class="mode-selection-title">Como você quer usar o HUBBE hoje?</h2>
-              <p class="mode-selection-subtitle">
-                Escolha seu modo de uso para continuar.<br>(Se mudar de ideia, altere no perfil)
-              </p>
-              <button class="mode-choice-btn active-choice" onclick="selectUsageMode('active')">
-                <span class="mode-choice-title">Novas Conexões</span>
-                <span class="mode-choice-desc">Interaja, curta e troque mensagens.</span>
-              </button>
-              <button class="mode-choice-btn view-choice" onclick="selectUsageMode('view')">
-                <span class="mode-choice-title">Só observando</span>
-                <span class="mode-choice-desc">Veja perfis e o mural sem interagir.</span>
-              </button>
-            </div>
-            </div>
+<div id="mode-selection-view" class="mode-selection-screen hidden">
+  <div class="mode-selection-card">
+
+    <div class="mode-logo">
+      <img src="/:imagem/Logo.png" alt="Logo HUBBE">
+    </div>
+
+    <h2 class="mode-selection-title">Como você quer usar o HUBBE hoje?</h2>
+
+    <p class="mode-selection-subtitle">
+      Escolha seu modo de uso para continuar.<br>
+      (Se mudar de ideia, altere no perfil)
+    </p>
+
+    <button class="mode-choice-btn active-choice" onclick="selectUsageMode('active')">
+      <span class="mode-choice-title">Novas Conexões</span>
+      <span class="mode-choice-desc">Interaja, curta e troque mensagens.</span>
+    </button>
+
+    <button class="mode-choice-btn view-choice" onclick="selectUsageMode('view')">
+      <span class="mode-choice-title">Só observando</span>
+      <span class="mode-choice-desc">Veja perfis e o mural sem interagir.</span>
+    </button>
+
+  </div>
+</div>
 <!-- PESSOAS -->
             <div id="discover-view" class="min-h-screen max-w-md mx-auto px-6 py-4 hidden">
               <div class="discover-header">
