@@ -1900,7 +1900,7 @@ function checkSessionExpiration() {
   const now = Date.now();
   const diff = now - Number(loginTime);
 
-  const hours24 = 24 * 60 * 60 * 1000;
+  const hours24 = 8 * 60 * 60 * 1000;
 
   if (diff > hours24) {
     logoutUser();
