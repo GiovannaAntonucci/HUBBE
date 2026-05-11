@@ -73,28 +73,22 @@
 <!-- ESCOLHA DE MODO -->
 <div id="mode-selection-view" class="mode-selection-screen hidden">
   <div class="mode-selection-card">
-
     <div class="mode-logo">
-      <img src="/imagem/Logo.png" alt="Logo HUBBE">
+      <img src="./imagem/Logo.png" alt="Logo HUBBE">
     </div>
-
     <h2 class="mode-selection-title">Como você quer usar o HUBBE hoje?</h2>
-
     <p class="mode-selection-subtitle">
       Escolha seu modo de uso para continuar.<br>
       (Se mudar de ideia, altere no perfil)
     </p>
-
     <button class="mode-choice-btn active-choice" onclick="selectUsageMode('active')">
       <span class="mode-choice-title">Novas Conexões</span>
       <span class="mode-choice-desc">Interaja, curta e troque mensagens.</span>
     </button>
-
     <button class="mode-choice-btn view-choice" onclick="selectUsageMode('view')">
       <span class="mode-choice-title">Só observando</span>
       <span class="mode-choice-desc">Veja perfis e o mural sem interagir.</span>
     </button>
-
   </div>
 </div>
 <!-- PESSOAS -->
@@ -111,7 +105,6 @@
             </div>
 <!-- CHAT -->
 <div id="chat-view" class="min-h-screen max-w-md mx-auto px-4 py-4 hidden">
-
   <!-- LISTA DE CHATS -->
   <div id="chat-list-screen">
     <div class="chat-list-header">
@@ -120,17 +113,14 @@
         <h2 class="chat-list-title">Chats</h2>
       </div>
     </div>
-
     <div id="chat-list" class="chat-list"></div>
   </div>
-
-  <!-- CONVERSA ABERTA -->
+<!-- CONVERSA ABERTA -->
   <div id="chat-room-screen" class="hidden">
     <div class="chat-room-header">
       <button class="chat-back-btn" onclick="backToChatList()">
         <i data-lucide="arrow-left"></i>
       </button>
-
       <div class="chat-room-user">
         <img id="chat-room-avatar" class="chat-room-avatar" src="" alt="Foto">
         <div class="chat-room-user-info">
