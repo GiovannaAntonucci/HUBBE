@@ -162,6 +162,7 @@ async function init() {
   // 🔍 AGORA ESPERA carregar
   await loadFaceDetection();
 
+  checkSessionExpiration();
   loadData();
   ensureCurrentUserId();
   requestBrowserNotificationPermission();
@@ -457,6 +458,7 @@ async function completeOnboarding() {
     muralPostsCount: currentUser.muralPostsCount || 0
   };
   saveData();
+  localStorage.setItem("hubbe_login_time", Date.now());
   if (supabaseClient) {
     await supabaseClient.from("users").upsert({
       id: currentUser.id,
@@ -1888,6 +1890,21 @@ async function hasFace(imageSrc) {
   console.log("Resultado da detecção:", detection);
 
   return !!detection;
+}
+
+function checkSessionExpiration() {
+  const loginTime = localStorage.getItem("hubbe_login_time");
+
+  if (!loginTime) return;
+
+  const now = Date.now();
+  const diff = now - Number(loginTime);
+
+  const hours24 = 24 * 60 * 60 * 1000;
+
+  if (diff > hours24) {
+    logoutUser();
+  }
 }
 
 // ================= AUX =================
