@@ -1816,3 +1816,9 @@ button i {
   text-align: left !important;
   opacity: 0.75;
 }
+/* LOGO COM ESCRITA NA TELA INICIAL */
+.onboarding-logo img {
+  width: 170px !important;
+  height: auto !important;
+  object-fit: contain;
+}
