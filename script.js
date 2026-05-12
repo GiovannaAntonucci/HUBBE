@@ -1,29 +1,5 @@
-const mockUsers = [
-  {
-    id: 1,
-    name: "João Santos",
-    age: 27,
-    photo: "👨",
-    bio: "Futebol e música 🎸",
-    mode: "view"
-  },
-  {
-    id: 2,
-    name: "Pedro Costa",
-    age: 29,
-    photo: "🧔",
-    bio: "Tech enthusiast 💻",
-    mode: "view"
-  },
-  {
-    id: 3,
-    name: "Laura Mendes",
-    age: 25,
-    photo: "👩‍🦳",
-    bio: "Dança e yoga 🧘",
-    mode: "active"
-  }
-];
+/* JAVASCRIPT */
+
 let currentUser = {
   name: "Você",
   matches: [],
@@ -1892,7 +1868,7 @@ async function hasFace(imageSrc) {
   return !!detection;
 }
 
-function checkSessionExpiration() {
+async function checkSessionExpiration() {
   const loginTime = localStorage.getItem("hubbe_login_time");
 
   if (!loginTime) return;
@@ -1900,10 +1876,15 @@ function checkSessionExpiration() {
   const now = Date.now();
   const diff = now - Number(loginTime);
 
-  const hours24 = 8 * 60 * 60 * 1000;
+  // 8 horas
+  const sessionLimit = 8 * 60 * 60 * 1000;
 
-  if (diff > hours24) {
-    logoutUser();
+  if (diff > sessionLimit) {
+
+    console.log("Sessão expirada.");
+
+    // usa o logout COMPLETO
+    await logoutUser();
   }
 }
 
