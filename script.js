@@ -1877,8 +1877,11 @@ async function checkSessionExpiration() {
   const diff = now - Number(loginTime);
 
   // 8 horas
-  const sessionLimit = 8 * 60 * 60 * 1000;
+  // const sessionLimit = 8 * 60 * 60 * 1000;
 
+  //5min - teste
+  const sessionLimit = 5 * 60 * 1000;
+  
   if (diff > sessionLimit) {
 
     console.log("Sessão expirada.");
