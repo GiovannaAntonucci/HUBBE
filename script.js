@@ -81,6 +81,36 @@ const supabaseClient = window.supabase
     saveChatStatus();
   }
 
+  async function syncUnreadChatNotifications() {
+  if (!supabaseClient || !currentUser.id) return;
+  const { data, error } = await supabaseClient
+    .from("notifications")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .eq("is_read", false)
+    .in("type", ["brinde", "message"])
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Erro ao sincronizar notificações:", error);
+    return;
+  }
+  (data || []).forEach(notification => {
+    const fromUserId = notification.from_user_id;
+    unreadChatUsers.add(fromUserId);
+    if (notification.type === "brinde") {
+      chatPreviewMap[fromUserId] = "Novo brinde 🍻";
+    }
+    if (notification.type === "message") {
+      chatPreviewMap[fromUserId] = notification.message || "Nova mensagem 💬";
+    }
+  });
+  saveChatStatus();
+  if (unreadChatUsers.size > 0) {
+    showChatBadge();
+  } else {
+    hideChatBadge();
+  }
+}
   function ensureCurrentUserId() {
     let savedId = localStorage.getItem("hubbeUserId");
     if (!savedId) {
@@ -109,7 +139,6 @@ const navTabs = [
   "profile-view"
 ];
 document.addEventListener("DOMContentLoaded", init);
-
 let faceModelReady = false;
 
 async function loadFaceDetection() {
@@ -119,11 +148,8 @@ async function loadFaceDetection() {
       faceModelReady = false;
       return;
     }
-
     const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
-
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-
     faceModelReady = true;
     console.log("Detector de rosto carregado com sucesso.");
   } catch (error) {
@@ -137,41 +163,33 @@ async function loadFaceDetection() {
 async function init() {
   // 🔍 AGORA ESPERA carregar
   await loadFaceDetection();
-
   checkSessionExpiration();
   loadData();
   ensureCurrentUserId();
   requestBrowserNotificationPermission();
   listenToMyNotifications();
+  await syncUnreadChatNotifications();
   listenUsersRealtime();
   setUserOnline();
-
   setInterval(setUserOnline, 30000);
-
   setupOnboarding();
-
   const navItems = document.querySelectorAll(".nav-item");
   navItems.forEach((item, index) => {
     item.addEventListener("click", () => setActiveTab(index));
   });
-
   if (hasCompleteProfile()) {
     selfieTaken = true;
-
     if (!currentUser.mode) {
       showModeSelection();
     } else {
       const nav = document.getElementById("bottom-nav");
       if (nav) nav.classList.remove("hidden");
-
       setActiveTab(0);
     }
   }
-
   if (typeof lucide !== "undefined") {
     lucide.createIcons();
   }
-
   setupHorizontalFade("mural-suggestions");
 }
 
@@ -741,7 +759,7 @@ async function renderChats() {
   if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
-function openChat(matchId) {
+async function openChat(matchId) {
   const match = realMatches.find(m => m.id === matchId);
 
   if (match) {
@@ -749,12 +767,21 @@ function openChat(matchId) {
       match.user1 === currentUser.id ? match.user2 : match.user1;
 
     clearChatUnread(otherUserId);
+
+    if (supabaseClient) {
+      await supabaseClient
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", currentUser.id)
+        .eq("from_user_id", otherUserId)
+        .in("type", ["brinde", "message"]);
+    }
   }
 
   currentUser.activeChatId = matchId;
   saveData();
   hideChatBadge();
-  renderChats();
+  await renderChats();
 }
 
 function backToChatList() {
@@ -918,9 +945,6 @@ async function sendQuickChatMessage(matchId, text) {
     const otherUserId =
       match.user1 === currentUser.id ? match.user2 : match.user1;
 
-    chatPreviewMap[otherUserId] = text;
-    saveChatStatus();
-
     await createNotification(
       otherUserId,
       currentUser.id,
@@ -945,22 +969,15 @@ async function sendTypedChatMessage() {
 
   if (!text || remaining <= 0) return;
 
-  // 🔹 envia mensagem
   await supabaseClient.from("messages").insert({
     match_id: match.id,
     sender_id: currentUser.id,
     text
   });
 
-  // 🔹 identifica outro usuário
   const otherUserId =
     match.user1 === currentUser.id ? match.user2 : match.user1;
 
-  // 🔹 atualiza preview do chat
-  chatPreviewMap[otherUserId] = text;
-  saveChatStatus();
-
-  // 🔹 envia notificação para o outro usuário
   await createNotification(
     otherUserId,
     currentUser.id,
@@ -969,12 +986,10 @@ async function sendTypedChatMessage() {
     `${currentUser.name}: ${text}`
   );
 
-  // 🔹 limpa input
   input.value = "";
-
-  // 🔹 atualiza chat aberto
   await renderActiveChat();
 }
+
 // ================= PROFILE =================
 async function getReceivedLikesCount() {
   if (!supabaseClient || !currentUser.id) return 0;
