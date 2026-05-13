@@ -522,8 +522,70 @@ function getBeerIconMarkup(isActive, isDisabled = false) {
     </svg>
   `;
 }
+
+async function cleanupExpiredUsers() {
+  if (!supabaseClient) return;
+
+  // 5 minutos para teste
+  const sessionLimit = 5 * 60 * 1000; 
+  //8 horas.
+  //const sessionLimit = 8 * 60 * 60 * 1000;
+
+  const limitDate = new Date(Date.now() - sessionLimit).toISOString();
+
+  const { data: expiredUsers, error } = await supabaseClient
+    .from("users")
+    .select("id")
+    .lt("last_seen", limitDate);
+
+  if (error) {
+    console.error("Erro ao buscar usuários expirados:", error);
+    return;
+  }
+
+  for (const user of expiredUsers || []) {
+    await deleteUserData(user.id);
+  }
+}
+
+async function deleteUserData(userId) {
+  if (!supabaseClient || !userId) return;
+
+  const { data: userMatches } = await supabaseClient
+    .from("matches")
+    .select("id")
+    .or(`user1.eq.${userId},user2.eq.${userId}`);
+
+  const matchIds = (userMatches || []).map(match => match.id);
+
+  if (matchIds.length > 0) {
+    await supabaseClient.from("messages").delete().in("match_id", matchIds);
+  }
+
+  await supabaseClient.from("matches").delete().or(`user1.eq.${userId},user2.eq.${userId}`);
+  await supabaseClient.from("likes").delete().or(`from_user.eq.${userId},to_user.eq.${userId}`);
+  await supabaseClient.from("mural_replies").delete().eq("author_id", userId);
+
+  const { data: posts } = await supabaseClient
+    .from("mural_posts")
+    .select("id")
+    .eq("author_id", userId);
+
+  const postIds = (posts || []).map(post => post.id);
+
+  if (postIds.length > 0) {
+    await supabaseClient.from("mural_replies").delete().in("post_id", postIds);
+  }
+
+  await supabaseClient.from("mural_posts").delete().eq("author_id", userId);
+  await supabaseClient.from("notifications").delete().or(`user_id.eq.${userId},from_user_id.eq.${userId}`);
+  await supabaseClient.from("users").delete().eq("id", userId);
+}
+
 async function loadRealUsers() {
   if (!supabaseClient) return;
+
+   await cleanupExpiredUsers();
   const { data, error } = await supabaseClient
     .from("users")
     .select("*")
@@ -1881,7 +1943,7 @@ async function checkSessionExpiration() {
 
   //5min - teste
   const sessionLimit = 5 * 60 * 1000;
-  
+
   if (diff > sessionLimit) {
 
     console.log("Sessão expirada.");
