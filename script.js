@@ -447,10 +447,8 @@ function hasCompleteProfile() {
 async function cleanupExpiredUsers() {
   if (!supabaseClient) return;
 
-  // 5 minutos para teste
-  const sessionLimit = 5 * 60 * 1000; 
   //8 horas.
-  //const sessionLimit = 8 * 60 * 60 * 1000;
+  const sessionLimit = 8 * 60 * 60 * 1000;
 
   const limitDate = new Date(Date.now() - sessionLimit).toISOString();
 
@@ -1841,10 +1839,8 @@ async function checkSessionExpiration() {
   const diff = now - Number(loginTime);
 
   // 8 horas
-  // const sessionLimit = 8 * 60 * 60 * 1000;
+  const sessionLimit = 8 * 60 * 60 * 1000;
 
-  //5min - teste
-  const sessionLimit = 5 * 60 * 1000;
 
   if (diff > sessionLimit) {
 
