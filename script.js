@@ -609,17 +609,27 @@ async function toggleChoppLike(toUserId) {
   if (!fromUserId || !toUserId) return;
   if (!currentUser.likesSent) currentUser.likesSent = [];
   const alreadyLiked = currentUser.likesSent.includes(toUserId);
-  if (alreadyLiked) {
-    await supabaseClient
-      .from("likes")
-      .delete()
-      .eq("from_user", fromUserId)
-      .eq("to_user", toUserId);
-    currentUser.likesSent = currentUser.likesSent.filter(id => id !== toUserId);
-    saveData();
-    renderUsers();
-    return;
-  }
+if (alreadyLiked) {
+
+  // remove o like
+  await supabaseClient
+    .from("likes")
+    .delete()
+    .eq("from_user", fromUserId)
+    .eq("to_user", toUserId);
+
+  // remove da lista local
+  currentUser.likesSent = currentUser.likesSent.filter(
+    id => id !== toUserId
+  );
+
+  saveData();
+
+  await renderUsers();
+  await renderChats();
+
+  return;
+}
   await supabaseClient.from("likes").insert({
     from_user: fromUserId,
     to_user: toUserId
@@ -879,6 +889,22 @@ async function renderActiveChat() {
 
   const user = match.otherUser;
 
+const { data: mutualLike } = await supabaseClient
+  .from("likes")
+  .select("*")
+  .eq("from_user", currentUser.id)
+  .eq("to_user", user.id);
+
+const { data: reverseLike } = await supabaseClient
+  .from("likes")
+  .select("*")
+  .eq("from_user", user.id)
+  .eq("to_user", currentUser.id);
+
+const chatEnabled =
+  mutualLike?.length > 0 &&
+  reverseLike?.length > 0;
+
   const avatar = document.getElementById("chat-room-avatar");
   const name = document.getElementById("chat-room-name");
   const messagesEl = document.getElementById("chat-messages");
@@ -917,7 +943,29 @@ async function renderActiveChat() {
 
   renderQuickChatMessages(match.id);
   await updateChatRemainingText(match.id);
+  if (!chatEnabled) {
 
+  const input = document.getElementById("chat-input");
+  const sendBtn = document.getElementById("chat-send-btn");
+  const quickBtns = document.querySelectorAll(".chat-quick-btn");
+  const remainingText = document.getElementById("chat-remaining-text");
+
+  if (input) {
+    input.disabled = true;
+    input.placeholder = "O brinde foi desfeito 🍻";
+  }
+
+  if (sendBtn) sendBtn.disabled = true;
+
+  quickBtns.forEach(btn => {
+    btn.disabled = true;
+  });
+
+  if (remainingText) {
+    remainingText.textContent =
+      "O chat foi pausado porque o brinde não é mais recíproco.";
+  }
+}
   if (input) {
     input.value = "";
     input.onkeypress = e => {
