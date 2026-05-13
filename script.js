@@ -349,60 +349,6 @@ async function validateSelfieAutomatically() {
   validateForm();
 }
 
-async function confirmSelfie() {
-  const actions = document.getElementById("selfie-actions");
-  const btn = document.getElementById("selfie-btn");
-  const confirmBtn = document.getElementById("confirm-selfie-btn");
-
-  if (!selfieImage) {
-    alert("Nenhuma selfie foi tirada.");
-    return;
-  }
-
-  if (confirmBtn) {
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = "Verificando rosto...";
-  }
-
-  const faceDetected = await hasFace(selfieImage);
-
-  if (!faceDetected) {
-    if (confirmBtn) {
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = "Ficou boa";
-    }
-
-    alert("Nenhum rosto detectado. Tire uma selfie válida.");
-    return;
-  }
-
-  selfieTaken = true;
-  localStorage.setItem("hubbe_selfie", selfieImage);
-
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
-
-  if (actions) actions.classList.add("hidden");
-
-  if (btn) {
-    btn.classList.remove("hidden");
-    btn.innerHTML = '<i data-lucide="camera"></i> Nova Selfie';
-  }
-
-  if (confirmBtn) {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = "Ficou boa";
-  }
-
-  if (typeof lucide !== "undefined") {
-    lucide.createIcons();
-  }
-
-  validateForm();
-}
-
 function validateForm() {
   const name = document.getElementById("user-name")?.value.trim();
   const age = parseInt(document.getElementById("user-age")?.value);
@@ -479,49 +425,6 @@ function hasCompleteProfile() {
   );
 }
 // ================= USERS =================
-function getBeerIconMarkup(isActive, isDisabled = false) {
-  const fillOpacity = isActive ? "1" : "0";
-  const strokeOpacity = isDisabled ? "0.28" : "1";
-  return `
-    <svg class="beer-svg" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M9 6h3a5 5 0 0 1 5 5v3a4 4 0 0 1-4 4H9z"
-        fill="rgba(255, 212, 59, ${fillOpacity})"
-        stroke="none"
-      ></path>
-      <path
-        d="M6 5h10v11a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4V5Z"
-        fill="none"
-        stroke="rgba(255,255,255,${strokeOpacity})"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
-      <path
-        d="M16 8h1.5a2.5 2.5 0 0 1 0 5H16"
-        fill="none"
-        stroke="rgba(255,255,255,${strokeOpacity})"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
-      <path
-        d="M8 9h6"
-        fill="none"
-        stroke="rgba(255,255,255,${strokeOpacity})"
-        stroke-width="1.6"
-        stroke-linecap="round"
-      ></path>
-      <path
-        d="M8.8 12h5.2"
-        fill="none"
-        stroke="rgba(255,255,255,${strokeOpacity})"
-        stroke-width="1.6"
-        stroke-linecap="round"
-      ></path>
-    </svg>
-  `;
-}
 
 async function cleanupExpiredUsers() {
   if (!supabaseClient) return;
@@ -732,6 +635,8 @@ async function toggleChoppLike(toUserId) {
       );
       // 🔔 mostra pra você (app)
       showAppNotification(`Você e ${user?.name || "alguém"} deram um brinde 🍻`);
+      markChatUnread(toUserId, "Novo brinde 🍻");
+      showChatBadge();
       // 🔔 notificação real (opcional aqui também)
       showBrowserNotification(
         "Novo brinde 🍻",
@@ -1007,6 +912,23 @@ async function sendQuickChatMessage(matchId, text) {
     sender_id: currentUser.id,
     text
   });
+
+  const match = await getActiveMatch();
+  if (match) {
+    const otherUserId =
+      match.user1 === currentUser.id ? match.user2 : match.user1;
+
+    chatPreviewMap[otherUserId] = text;
+    saveChatStatus();
+
+    await createNotification(
+      otherUserId,
+      currentUser.id,
+      "message",
+      "Nova mensagem 💬",
+      `${currentUser.name}: ${text}`
+    );
+  }
 
   await renderActiveChat();
 }
@@ -1465,41 +1387,6 @@ async function captureEditPhoto() {
   }
 }
 
-async function confirmEditPhoto() {
-  if (!editSelfieImage) {
-    alert("Tire uma foto antes de usar.");
-    return;
-  }
-
-  const saveBtn = document.getElementById("save-edit-photo-btn");
-
-  if (saveBtn) {
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Verificando rosto...";
-  }
-
-  const faceDetected = await hasFace(editSelfieImage);
-
-  if (!faceDetected) {
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Usar essa foto";
-    }
-
-    alert("Nenhum rosto detectado. Tire uma selfie válida.");
-    editSelfieImage = "";
-    return;
-  }
-
-  if (saveBtn) {
-    saveBtn.disabled = false;
-    saveBtn.textContent = "Foto selecionada ✅";
-  }
-
-  setTimeout(() => {
-    if (saveBtn) saveBtn.textContent = "Usar essa foto";
-  }, 1200);
-}
 async function saveProfileEdit() {
   currentUser.name = document.getElementById("edit-name").value.trim();
   currentUser.age = parseInt(document.getElementById("edit-age").value);
@@ -1737,7 +1624,7 @@ function listenToMyNotifications() {
         showBrowserNotification(notification.title, notification.message);
         
         if (notification.type === "brinde") {
-          markChatUnread(notification.from_user_id, '"Novo brinde 🍻"');
+        markChatUnread(notification.from_user_id, "Novo brinde 🍻");
         }
         
         if (notification.type === "message") {
